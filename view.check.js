@@ -2,7 +2,8 @@
 import assert from 'node:assert/strict';
 import {
   render, esc, initialState, cleanDigits, cleanPrice, canAdd, submitStock, startEdit, cancelEdit,
-  deleteStock, stepCount, toggleUnit, setSetting, calculate, selectPart, toggleDone, toggleZoom
+  deleteStock, stepCount, toggleUnit, setSetting, calculate, selectPart, toggleDone, toggleZoom,
+  serialize, restore
 } from './view.js';
 import { EXAMPLE_STOCK, EXAMPLE_STOCK_WARNING } from './cutting-plan.js';
 import { checkPlan } from './check.js';
@@ -269,4 +270,36 @@ html = render({ ...evil, ...calculate(evil), selectedPartUid: 'p0', zoom: { 0: t
 assert.doesNotMatch(html, /<i>x/);
 assert.match(html, /&lt;i&gt;x/);
 
-console.log('view.check.js: shell, tab bar, stock and plan screen checks passed');
+// ---- Persistence (localStorage) ----
+// round trip: stock, settings, plan, versions and ticks survive; UI state does not
+const saved = { ...full, settings: { kerf: 3, exL: 20, exW: 5 }, version: full.version + 1, done: { p0: true, p3: true },
+  tab: 'plan', selectedPartUid: 'p1', zoom: { 1: true }, settingsOpen: true, form: F({ t: '50' }), editId: 1 };
+const back = { ...S(), ...restore(serialize(saved), saved.parts) };
+for (const k of ['stock', 'settings', 'plan', 'planVersion', 'version', 'done']) assert.deepEqual(back[k], saved[k], k);
+for (const k of ['tab', 'selectedPartUid', 'zoom', 'settingsOpen', 'form', 'editId']) assert.deepEqual(back[k], S()[k], k);
+// the restored plan (no shared object identity) renders the same and still passes checkPlan
+assert.equal(render({ ...back, tab: 'plan' }), render({ ...saved, selectedPartUid: null, zoom: {} }));
+checkPlan(back.parts, back.stock, back.settings, back.plan);
+const wb = { ...S(), ...restore(serialize(warn), warn.parts) };
+assert.equal(render({ ...wb, tab: 'plan' }), render(warn));
+checkPlan(wb.parts, wb.stock, wb.settings, wb.plan);
+assert.deepEqual(restore(serialize(S()), S().parts), { stock: [], settings: S().settings, plan: null, planVersion: 0, version: 0, done: {} });
+
+// nothing saved, corrupt JSON, wrong schema or bad shapes → defaults (empty patch)
+const json = JSON.parse(serialize(saved));
+const bad = o => JSON.stringify({ ...json, ...o });
+for (const j of [null, '', '{', '"x"', '[]', 'null', bad({ schema: 999 }), bad({ schema: undefined }),
+  bad({ stock: 'x' }), bad({ stock: [{ id: 1, t: 'a', w: 1, l: 1 }] }), bad({ stock: [null] }), bad({ settings: null }),
+  bad({ settings: { kerf: 4 } }), bad({ version: 'x' })]) assert.deepEqual(restore(j, saved.parts), {}, String(j));
+// a broken plan or ticks drop only the plan
+for (const o of [{ plan: { slabs: 'x' } }, { plan: 5 }, { done: 'x' }, { planVersion: 'x' }]) {
+  const r = restore(bad(o), saved.parts);
+  assert.deepEqual([r.plan, r.done, r.stock, r.settings], [null, {}, saved.stock, saved.settings], JSON.stringify(o));
+}
+// a changed part list drops plan and ticks (uids would point at other parts) but keeps stock and settings
+const changed = saved.parts.map((p, i) => (i ? p : { ...p, l: p.l + 1 }));
+const r = restore(serialize(saved), changed);
+assert.deepEqual([r.plan, r.done, r.stock, r.settings, r.version], [null, {}, saved.stock, saved.settings, saved.version]);
+assert.deepEqual(restore(serialize(saved), [...saved.parts].reverse()).plan, null);
+
+console.log('view.check.js: shell, tab bar, stock, plan screen and persistence checks passed');

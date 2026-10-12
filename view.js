@@ -104,6 +104,39 @@ export function calculate(s) {
   };
 }
 
+// ---- Persistence ----
+// app.js keeps serialize(state) in localStorage and starts from restore(saved, parts).
+// Ticks are keyed by part uid (p0, p1… in BOM order), so plan and ticks only stay valid for the
+// same part list: a fingerprint of the parts drops them when the list changed.
+// Anything unreadable (no data, corrupt JSON, other schema, bad shapes) → {} = start clean.
+export const STORAGE_KEY = 'stock-cutting';
+export const SCHEMA = 1;
+const partsKey = parts => parts.map(p => [p.name, p.t, p.w, p.l, p.n].join('|')).join(';');
+
+export const serialize = s => JSON.stringify({
+  schema: SCHEMA, parts: partsKey(s.parts), stock: s.stock, settings: s.settings,
+  plan: s.plan, planVersion: s.planVersion, version: s.version, done: s.done
+});
+
+const num = v => typeof v === 'number' && v >= 0;
+const obj = v => v && typeof v === 'object' && !Array.isArray(v);
+const okStock = x => obj(x) && [x.id, x.t, x.w, x.l].every(num)
+  && (x.count === null || num(x.count)) && (x.price === null || num(x.price)) && (x.unit === 'pc' || x.unit === 'm3');
+const okPlan = d => obj(d.plan) && Array.isArray(d.plan.slabs) && Array.isArray(d.plan.unplaced) && obj(d.plan.totals)
+  && num(d.planVersion) && obj(d.done);
+
+export function restore(json, parts) {
+  let d;
+  try { d = JSON.parse(json); } catch { return {}; }
+  if (!obj(d) || d.schema !== SCHEMA || !Array.isArray(d.stock) || !d.stock.every(okStock)
+    || !obj(d.settings) || !['kerf', 'exL', 'exW'].every(k => num(d.settings[k])) || !num(d.version)) return {};
+  const keep = d.parts === partsKey(parts) && okPlan(d);
+  return {
+    stock: d.stock, settings: d.settings, version: d.version,
+    plan: keep ? d.plan : null, planVersion: keep ? d.planVersion : 0, done: keep ? d.done : {}
+  };
+}
+
 // ---- Rendering ----
 
 // '!' when parts could not be placed, '•' when stock/settings changed since the plan, else none

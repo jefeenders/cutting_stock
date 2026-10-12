@@ -9,6 +9,17 @@ const root = document.getElementById('app');
 export const state = V.initialState();
 const $ = id => document.getElementById(id);
 
+// Stock, settings, plan and ticks survive a reload (offline at the mill, cutting later at home).
+// localStorage may throw (private mode, quota, blocked): then the app just doesn't remember.
+let saved = null;
+try { saved = localStorage.getItem(V.STORAGE_KEY); Object.assign(state, V.restore(saved, state.parts)); } catch {}
+function save() {
+  const json = V.serialize(state);
+  if (json === saved) return;
+  saved = json;
+  try { localStorage.setItem(V.STORAGE_KEY, json); } catch {}
+}
+
 export function set(patch) {
   if (!patch) return;
   const tab = state.tab, scroll = root.querySelector('.scroll')?.scrollTop ?? 0;
@@ -25,6 +36,7 @@ export function set(patch) {
   }
   const el = focusId && $(focusId);
   if (el) { el.focus({ preventScroll: true }); if (sel) el.setSelectionRange(...sel); }
+  save();
 }
 
 // Update what depends on typed values without touching the inputs.
@@ -88,6 +100,7 @@ root.addEventListener('input', e => {
   if (el.dataset.form) state.form[key] = v;
   else Object.assign(state, V.setSetting(state, key, v));
   patch();
+  save();
 });
 
 // Enter: T → W → L → submit; price → submit; settings → close the keyboard.

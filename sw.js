@@ -3,11 +3,11 @@
 // UPDATE RULE: bump VERSION in every deploy that changes any app file, and keep FILES in step with
 // the app (pwa.check.js fails otherwise). Phones then fetch the new files on their next visit and
 // show them on the visit after that (this visit still runs the old cached files).
-const VERSION = 'v1';
+const VERSION = 'v2';
 const APP = 'app-' + VERSION, FONTS = 'fonts';
 const FILES = [
   './', 'index.html', 'style.css', 'app.js', 'view.js', 'cutting-plan.js',
-  'manifest.json', 'icon-180.png', 'icon-192.png', 'icon-512.png'
+  'parts.json', 'manifest.json', 'icon-180.png', 'icon-192.png', 'icon-512.png'
 ];
 
 self.addEventListener('install', e => e.waitUntil(

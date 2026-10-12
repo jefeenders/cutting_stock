@@ -1,0 +1,14 @@
+{
+  "project": "Workbench",
+  "parts": [
+    {"name": "Tischplatte_hinten", "t": 100, "w": 255, "l": 2276, "n": 1},
+    {"name": "Tischplatte_vorn", "t": 100, "w": 215, "l": 2232, "n": 1},
+    {"name": "Bankhakenleiste", "t": 40, "w": 100, "l": 2254, "n": 1},
+    {"name": "Leg", "t": 90, "w": 130, "l": 725, "n": 4},
+    {"name": "Stretcher_long_front", "t": 80, "w": 110, "l": 1140, "n": 1},
+    {"name": "Stretcher_long_back", "t": 45, "w": 110, "l": 1200, "n": 1},
+    {"name": "Stretcher_short", "t": 45, "w": 110, "l": 470, "n": 2},
+    {"name": "Stretcher_short", "t": 45, "w": 90, "l": 470, "n": 2},
+    {"name": "Leg_Vise_Body", "t": 45, "w": 247, "l": 755, "n": 1}
+  ]
+}

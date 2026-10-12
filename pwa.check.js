@@ -28,17 +28,21 @@ assert.equal(png(touch[1]), '180x180');
 for (const name of ['apple-mobile-web-app-capable', 'apple-mobile-web-app-status-bar-style', 'apple-mobile-web-app-title', 'theme-color'])
   assert.match(html, new RegExp(`<meta name="${name}" content="[^"]+">`), name);
 
-// files the app needs: local src/href in index.html, manifest icons, and the ES module import graph
+// files the app needs: local src/href in index.html, manifest icons, the ES module import graph and
+// files the modules fetch('…') (parts.json: offline at the mill it must come from the precache)
 const need = new Set(['index.html']);
 const local = u => !/^[a-z]+:/i.test(u);
 for (const [, u] of html.matchAll(/(?:src|href)="([^"]+)"/g)) if (local(u)) need.add(u);
 for (const i of m.icons) need.add(i.src);
 const todo = [...need].filter(f => f.endsWith('.js'));
 while (todo.length) {
-  for (const [, u] of read(todo.pop()).matchAll(/^import\b[^'"]*['"]\.\/([^'"]+)['"]/gm))
+  const js = read(todo.pop());
+  for (const [, u] of js.matchAll(/^import\b[^'"]*['"]\.\/([^'"]+)['"]/gm))
     if (!need.has(u)) { need.add(u); todo.push(u); }
+  for (const [, u] of js.matchAll(/\bfetch\('([^']+)'/g)) if (local(u)) need.add(u);
 }
 assert.ok(need.has('cutting-plan.js'), 'import graph followed');
+assert.ok(need.has('parts.json'), 'fetched files followed');
 
 // sw.js precaches exactly those files (plus './', the start_url), all of which exist
 const sw = read('sw.js');

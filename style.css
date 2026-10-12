@@ -205,6 +205,7 @@ input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-app
 .noplan { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 12px; padding: 24px; }
 .noplan-title { font: 600 28px/1.1 var(--font-num); }
 .noplan p { margin: 0; font: 400 16px/1.45 var(--font); color: var(--muted); }
+.loading { margin: 0; padding: 24px 18px; font: 400 16px/1.45 var(--font); color: var(--muted); }
 .goto { height: 52px; padding: 0 20px; font: 600 19px/1 var(--font-num); }
 
 .scroll.plan { display: flex; flex-direction: column; gap: 18px; padding: 14px 18px 22px; }

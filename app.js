@@ -11,8 +11,9 @@ const $ = id => document.getElementById(id);
 
 // Stock, settings, plan and ticks survive a reload (offline at the mill, cutting later at home).
 // localStorage may throw (private mode, quota, blocked): then the app just doesn't remember.
+// They are restored once parts.json has loaded (startWith), since the plan is only valid for those parts.
 let saved = null;
-try { saved = localStorage.getItem(V.STORAGE_KEY); Object.assign(state, V.restore(saved, state.parts)); } catch {}
+try { saved = localStorage.getItem(V.STORAGE_KEY); } catch {}
 function save() {
   const json = V.serialize(state);
   if (json === saved) return;
@@ -150,7 +151,12 @@ function endDrag(e, cancelled) {
 root.addEventListener('pointerup', e => endDrag(e, false));
 root.addEventListener('pointercancel', e => endDrag(e, true));
 
-set({});
+// Nothing is rendered until parts.json is in (index.html shows "Loading parts…"), so the screen
+// never flashes the empty stock list. sw.js serves parts.json from the precache offline.
+const loaded = await fetch('parts.json')
+  .then(r => (r.ok ? r.text().then(V.parseParts) : { error: `parts.json could not be loaded (HTTP ${r.status})` }))
+  .catch(() => ({ error: 'parts.json could not be loaded (offline?)' }));
+set(V.startWith(loaded, saved));
 
 // Offline at the mill: sw.js caches the app files (and fonts) after the first online visit.
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});

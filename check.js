@@ -154,6 +154,15 @@ if (import.meta.main) {
 
   run(EXAMPLE_PARTS, EXAMPLE_STOCK);
 
+  // t, w, l are semantic, not size-ordered: a short wide part (w > l, grain across) cuts to 305 × 220,
+  // two fit end to end in one strip; a part thicker than wide (cut 45 × 520) gets two strips side by side
+  assert.deepEqual(brief(run([P('W', 40, 300, 200, 2)], [S(1, 40, 310, 500, 1)])), {
+    slabs: [[1, ['W', 0, 0], ['W', 224, 0]]], unplaced: []
+  });
+  assert.deepEqual(brief(run([P('T', 60, 40, 500, 2)], [S(1, 60, 100, 600, 1)])), {
+    slabs: [[1, ['T', 0, 0], ['T', 0, 49]]], unplaced: []
+  });
+
   // seeded fuzz
   const mulberry32 = a => () => {
     a |= 0; a = a + 0x6D2B79F5 | 0;

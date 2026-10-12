@@ -5,14 +5,15 @@
 // Clickable elements carry data-action (plus data-* arguments); app.js dispatches them.
 // All user-provided text (part names, numbers typed in) goes through esc().
 
-import { DEFAULT_SETTINGS, EXAMPLE_PARTS, makePlan, volume, unitPrice } from './cutting-plan.js';
+import { DEFAULT_SETTINGS, makePlan, volume, unitPrice } from './cutting-plan.js';
 
 // State shape follows README "State". version is bumped on every stock/settings change;
 // the plan is stale when it was made at another version.
 // Form fields hold the strings as typed; stock entries hold numbers.
 export const initialState = () => ({
   tab: 'stock',
-  parts: EXAMPLE_PARTS, // ponytail: example BOM until parts.json loading (sc-tjk.7)
+  project: '', parts: [], partsError: null, // from parts.json (startWith); partsError: why it didn't load
+  partsId: '', // fingerprint of the part list the saved plan was made for, kept while parts.json is broken
   stock: [],
   settings: { ...DEFAULT_SETTINGS },
   form: { t: '', w: '', l: '', count: 1, price: '', unit: 'pc' },
@@ -96,25 +97,59 @@ export function setSetting(s, key, raw) {
   return { settings: { ...s.settings, [key]: v }, version: s.version + 1 };
 }
 
+const canCalc = s => s.stock.length > 0 && s.parts.length > 0;
 export function calculate(s) {
-  if (!s.stock.length) return null;
+  if (!canCalc(s)) return null;
   return {
     plan: makePlan(s.parts, s.stock, s.settings), planVersion: s.version, tab: 'plan',
     openId: null, selectedPartUid: null, done: {}, zoom: {}
   };
 }
 
+// ---- Part list (parts.json) ----
+// { "project": "Workbench", "parts": [{ "name": "Leg", "t": 90, "w": 130, "l": 725, "n": 4 }] }
+// Finished sizes in whole mm: t thickness, w across the board, l along the grain (w > l or t > w
+// is fine), n = quantity. Other keys are ignored. A bad row is rejected with a message naming it;
+// dimensions are never reordered or rounded (size ordering is the converter's job).
+const whole = v => Number.isInteger(v) && v > 0;
+export function parseParts(text) {
+  let d;
+  try { d = JSON.parse(text); } catch (e) { return { error: `parts.json is not valid JSON: ${e.message}` }; }
+  if (!obj(d) || !Array.isArray(d.parts)) return { error: 'parts.json must look like { "project": "…", "parts": [ … ] }' };
+  if (typeof d.project !== 'string' || !d.project.trim()) return { error: 'parts.json: "project" must be a non-empty name' };
+  if (!d.parts.length) return { error: 'parts.json has no parts' };
+  const parts = [];
+  for (const [i, p] of d.parts.entries()) {
+    const row = `Part ${i + 1}` + (typeof p?.name === 'string' && p.name.trim() ? ` ("${p.name}")` : '');
+    const bad = !obj(p) ? 'must be { "name", "t", "w", "l", "n" }'
+      : typeof p.name !== 'string' || !p.name.trim() ? 'name must be a non-empty text'
+      : ['t', 'w', 'l'].filter(k => !whole(p[k])).map(k => `${k} must be a whole number of mm > 0, got ${JSON.stringify(p[k])}`)[0]
+      ?? (!whole(p.n) ? `n must be a whole number ≥ 1, got ${JSON.stringify(p.n)}` : null);
+    if (bad) return { error: `${row}: ${bad}` };
+    parts.push({ name: p.name, t: p.t, w: p.w, l: p.l, n: p.n });
+  }
+  return { project: d.project, parts };
+}
+
+// Startup: parts.json first (loaded = parseParts result or { error }), then the saved data checked
+// against those parts. A part list that changes at runtime goes the same way:
+// set(startWith(loaded, serialize(state))) drops plan, ticks and planVersion if the parts differ.
+export const startWith = (loaded, json) => loaded.error
+  ? { project: '', parts: [], partsError: loaded.error, ...restore(json, null) }
+  : { project: loaded.project, parts: loaded.parts, partsError: null, ...restore(json, loaded.parts) };
+
 // ---- Persistence ----
 // app.js keeps serialize(state) in localStorage and starts from restore(saved, parts).
 // Ticks are keyed by part uid (p0, p1… in BOM order), so plan and ticks only stay valid for the
 // same part list: a fingerprint of the parts drops them when the list changed.
+// parts null = part list unknown (parts.json broken): keep the plan, it carries its own parts.
 // Anything unreadable (no data, corrupt JSON, other schema, bad shapes) → {} = start clean.
 export const STORAGE_KEY = 'stock-cutting';
 export const SCHEMA = 1;
 const partsKey = parts => parts.map(p => [p.name, p.t, p.w, p.l, p.n].join('|')).join(';');
 
 export const serialize = s => JSON.stringify({
-  schema: SCHEMA, parts: partsKey(s.parts), stock: s.stock, settings: s.settings,
+  schema: SCHEMA, parts: s.partsError ? s.partsId : partsKey(s.parts), stock: s.stock, settings: s.settings,
   plan: s.plan, planVersion: s.planVersion, version: s.version, done: s.done
 });
 
@@ -130,9 +165,9 @@ export function restore(json, parts) {
   try { d = JSON.parse(json); } catch { return {}; }
   if (!obj(d) || d.schema !== SCHEMA || !Array.isArray(d.stock) || !d.stock.every(okStock)
     || !obj(d.settings) || !['kerf', 'exL', 'exW'].every(k => num(d.settings[k])) || !num(d.version)) return {};
-  const keep = d.parts === partsKey(parts) && okPlan(d);
+  const keep = (parts ? d.parts === partsKey(parts) : typeof d.parts === 'string') && okPlan(d);
   return {
-    stock: d.stock, settings: d.settings, version: d.version,
+    stock: d.stock, settings: d.settings, version: d.version, partsId: String(d.parts ?? ''),
     plan: keep ? d.plan : null, planVersion: keep ? d.planVersion : 0, done: keep ? d.done : {}
   };
 }
@@ -161,6 +196,12 @@ export const settingsSummary = s =>
   `kerf ${s.settings.kerf} · +${s.settings.exL} L · +${s.settings.exW} W ${s.settingsOpen ? '▴' : '▾'}`;
 
 function projectHeader(s) {
+  if (s.partsError) return `<section class="stack8">
+    <div class="kicker">Project</div>
+    <div class="warn-box" role="alert"><div class="warn-head"><span class="warn-dot">!</span><span class="warn-title">Part list not loaded</span></div>
+      <p class="warn-text">${esc(s.partsError)}</p>
+      <p class="warn-text">You can still enter stock. Fix parts.json to calculate a plan.</p></div>
+  </section>`;
   const total = s.parts.reduce((a, p) => a + p.n, 0);
   const list = !s.partsOpen ? '' : `<div class="card parts">
     <div class="parts-row head"><span>Part</span><span>T × W × L mm</span><span>Qty</span></div>
@@ -169,7 +210,7 @@ function projectHeader(s) {
   </div>`;
   return `<section class="stack8">
     <div class="kicker">Project</div>
-    <h1 class="title">Workbench</h1>
+    <h1 class="title">${esc(s.project)}</h1>
     <button type="button" id="parts-toggle" class="card toggle" data-action="parts" aria-expanded="${s.partsOpen}">
       <span>${plural(total, 'part')} · ${plural(thicknesses(s.parts).length, 'thickness', 'thicknesses')}</span>
       <span class="toggle-label">${s.partsOpen ? 'Hide ▴' : 'Show list ▾'}</span>
@@ -195,8 +236,8 @@ function stockList(s) {
   if (!s.stock.length) return `<div class="empty">
     <div class="h2">No stock entered yet</div>
     <p>Walk the yard and enter each slab size the mill has today using the fields below. The thickness stays filled in for the next board.</p>
-    <div class="stack6"><div class="kicker">Your parts need</div>
-      <div class="chips">${thicknesses(s.parts).map(t => `<span class="chip">${esc(t)} mm</span>`).join('')}</div></div>
+    ${s.parts.length ? `<div class="stack6"><div class="kicker">Your parts need</div>
+      <div class="chips">${thicknesses(s.parts).map(t => `<span class="chip">${esc(t)} mm</span>`).join('')}</div></div>` : ''}
     <div class="start">↓ Start with the thickness</div>
   </div>`;
   return `<div class="stack8">${s.stock.map(x => stockRow(s, x)).join('')}
@@ -239,7 +280,7 @@ function dock(s) {
       </label>
       <button type="button" id="add" class="add" data-action="add"${canAdd(f) ? '' : ' disabled'}>${editing ? 'Save' : 'Add'}</button>
     </div>
-    <button type="button" id="calc" class="cta" data-action="calc"${s.stock.length ? '' : ' disabled'}>Calculate cutting plan</button>
+    <button type="button" id="calc" class="cta" data-action="calc"${canCalc(s) ? '' : ' disabled'}>Calculate cutting plan</button>
   </div>`;
 }
 
@@ -264,10 +305,10 @@ export const toggleZoom = (s, i) => ({ zoom: { ...s.zoom, [i]: !s.zoom[i] } });
 const dimsText = (...v) => v.map(esc).join(X);
 const partName = p => esc(p.name + (p.copy ? ' ' + p.copy : ''));
 
-function summary(t) {
+function summary(s, t) {
   const stat = (label, value) => `<div class="stat"><span class="stat-cap">${label}</span><span class="stat-n">${value}</span></div>`;
   return `<section class="summary">
-    <div class="stack6"><span class="kicker">Workbench · cutting plan</span><span class="buy">Buy ${plural(t.slabCount, 'slab')}</span></div>
+    <div class="stack6"><span class="kicker">${s.project ? esc(s.project) + ' · ' : ''}cutting plan</span><span class="buy">Buy ${plural(t.slabCount, 'slab')}</span></div>
     <div class="stats">${stat('Volume', `${t.volumeM3.toFixed(3)} m³`)}${stat('Waste', t.slabCount ? `${Math.round(t.wastePct)} %` : '—')}`
     + `${t.price != null ? stat('Total', eur(t.price)) : ''}</div>
     ${t.price != null && t.unpricedSlabs ? `<span class="excl">Total excludes ${plural(t.unpricedSlabs, 'slab')} without a price</span>` : ''}
@@ -345,9 +386,9 @@ function planScreen(s) {
   </div></main>`;
   const { slabs, unplaced, totals } = s.plan;
   const stale = s.version === s.planVersion ? '' : `<div class="stale"><span>Stock or settings changed since this plan was made.</span>`
-    + `<button type="button" id="recalc" class="recalc" data-action="calc"${s.stock.length ? '' : ' disabled'}>Recalculate</button></div>`;
+    + `<button type="button" id="recalc" class="recalc" data-action="calc"${canCalc(s) ? '' : ' disabled'}>Recalculate</button></div>`;
   return `<main class="screen"><div class="scroll plan">
-    ${stale}${summary(totals)}${unplacedBlock(unplaced)}
+    ${stale}${summary(s, totals)}${unplacedBlock(unplaced)}
     ${slabs.length ? `${shoppingList(slabs)}
       <div class="section-head slabs-head"><h2 class="h2">Slabs</h2><span class="muted">Tap a part to identify it</span></div>
       ${slabs.map((sl, i) => slabCard(s, sl, i)).join('')}` : ''}

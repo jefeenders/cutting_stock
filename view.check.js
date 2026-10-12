@@ -3,12 +3,13 @@ import assert from 'node:assert/strict';
 import {
   render, esc, initialState, cleanDigits, cleanPrice, canAdd, submitStock, startEdit, cancelEdit,
   deleteStock, stepCount, toggleUnit, setSetting, calculate, selectPart, toggleDone, toggleZoom,
-  serialize, restore
+  serialize, restore, parseParts, startWith
 } from './view.js';
-import { EXAMPLE_STOCK, EXAMPLE_STOCK_WARNING } from './cutting-plan.js';
+import { readFileSync } from 'node:fs';
+import { EXAMPLE_PARTS, EXAMPLE_STOCK, EXAMPLE_STOCK_WARNING } from './cutting-plan.js';
 import { checkPlan } from './check.js';
 
-const S = patch => ({ ...initialState(), ...patch });
+const S = patch => ({ ...initialState(), project: 'Workbench', parts: EXAMPLE_PARTS, ...patch });
 const tab = (html, key) => html.match(new RegExp(`<button[^>]*role="tab"[^>]*data-tab="${key}"[^]*?</button>`))[0];
 const plan = (unplaced = []) => ({ slabs: [], unplaced, totals: {} });
 
@@ -283,7 +284,7 @@ checkPlan(back.parts, back.stock, back.settings, back.plan);
 const wb = { ...S(), ...restore(serialize(warn), warn.parts) };
 assert.equal(render({ ...wb, tab: 'plan' }), render(warn));
 checkPlan(wb.parts, wb.stock, wb.settings, wb.plan);
-assert.deepEqual(restore(serialize(S()), S().parts), { stock: [], settings: S().settings, plan: null, planVersion: 0, version: 0, done: {} });
+assert.deepEqual(restore(serialize(S()), S().parts), { stock: [], settings: S().settings, plan: null, planVersion: 0, version: 0, done: {}, partsId: JSON.parse(serialize(S())).parts });
 
 // nothing saved, corrupt JSON, wrong schema or bad shapes → defaults (empty patch)
 const json = JSON.parse(serialize(saved));
@@ -302,4 +303,68 @@ const r = restore(serialize(saved), changed);
 assert.deepEqual([r.plan, r.done, r.stock, r.settings, r.version], [null, {}, saved.stock, saved.settings, saved.version]);
 assert.deepEqual(restore(serialize(saved), [...saved.parts].reverse()).plan, null);
 
-console.log('view.check.js: shell, tab bar, stock, plan screen and persistence checks passed');
+// ---- Part list (parts.json) ----
+// the committed parts.json is the example BOM
+assert.deepEqual(parseParts(readFileSync(new URL('parts.json', import.meta.url), 'utf8')), { project: 'Workbench', parts: EXAMPLE_PARTS });
+const PJ = (parts, extra) => JSON.stringify({ project: 'Desk', parts, ...extra });
+const leg = { name: 'Leg', t: 40, w: 60, l: 700, n: 4 };
+// extra keys are ignored (room for material/grain later), only { name, t, w, l, n } is kept
+assert.deepEqual(parseParts(PJ([{ ...leg, material: 'oak' }])), { project: 'Desk', parts: [leg] });
+const err = (json, re) => { const r = parseParts(json); assert.deepEqual(Object.keys(r), ['error'], json); assert.match(r.error, re, json); };
+err('{', /not valid JSON/);
+err('[]', /"project".*"parts"/);
+err(PJ(undefined), /"parts"/);
+err(PJ([]), /no parts/);
+err(JSON.stringify({ parts: [leg] }), /"project"/);
+err(PJ([leg], { project: '  ' }), /"project"/);
+err(PJ([leg, null]), /Part 2:/);
+err(PJ([leg, { ...leg, name: '' }]), /Part 2: name/);
+err(PJ([{ ...leg, name: 7 }]), /Part 1: name/);
+for (const k of ['t', 'w', 'l']) for (const v of [0, -5, 12.5, '40', null]) err(PJ([leg, { ...leg, [k]: v }]), new RegExp(`Part 2 \\("Leg"\\): ${k} must be a whole number of mm > 0`));
+for (const v of [0, 1.5, '2', undefined]) err(PJ([{ ...leg, n: v }]), /Part 1 \("Leg"\): n must be a whole number ≥ 1/);
+// t, w, l mean thickness, across, along the grain, not size order: accepted as given, never reordered
+const wide = { name: 'Short wide', t: 40, w: 300, l: 200, n: 1 }, thick = { name: 'Thick', t: 60, w: 40, l: 500, n: 2 };
+assert.deepEqual(parseParts(PJ([wide, thick])), { project: 'Desk', parts: [wide, thick] });
+
+// project title comes from the part list (Stock header, Plan summary); escaped
+assert.match(text(render(S({ project: 'Desk <b>' }))), /Project\s*Desk &lt;b&gt;/);
+assert.match(text(render({ ...full, project: 'Desk' })), /Desk · cutting plan/i);
+
+// part list could not be loaded: a clear message, stock entry still works, no calculating
+const broken = S({ parts: [], project: '', partsError: 'parts.json not found (HTTP 404)', stock: STOCK });
+html = render(broken);
+assert.match(text(html), /Part list not loaded\s*parts\.json not found \(HTTP 404\)/);
+assert.doesNotMatch(text(html), /0 parts|Show list/);
+assert.match(text(html), /100 × 260 × 2400/);
+assert.match(html, /<button[^>]*id="add"/);
+assert.match(html, /id="calc"[^>]*disabled/);
+assert.equal(calculate(broken), null);
+html = render({ ...broken, stock: [] });
+assert.match(text(html), /No stock entered yet/);
+assert.doesNotMatch(text(html), /Your parts need/);
+assert.match(render({ ...broken, plan: full.plan, planVersion: 0, version: 1, tab: 'plan' }), /id="recalc"[^>]*disabled/);
+
+// startup: parts first, then the saved data checked against them
+const ok = parseParts(PJ([leg]));
+const savedJson = serialize(saved);
+p = startWith(parseParts(JSON.stringify({ project: 'Workbench', parts: EXAMPLE_PARTS })), savedJson);
+assert.deepEqual([p.project, p.parts, p.partsError, p.plan, p.done, p.stock], ['Workbench', EXAMPLE_PARTS, null, saved.plan, saved.done, saved.stock]);
+// other parts than when the plan was made: plan, ticks and planVersion dropped, stock and settings kept
+p = startWith(ok, savedJson);
+assert.deepEqual([p.project, p.parts, p.plan, p.done, p.planVersion, p.stock, p.settings], ['Desk', [leg], null, {}, 0, saved.stock, saved.settings]);
+// nothing saved yet
+p = startWith(ok, null);
+assert.deepEqual([p.parts, p.partsError], [[leg], null]);
+assert.equal(p.stock, undefined);
+// parts.json broken: stock, settings and the last plan stay (the plan carries its own parts) ...
+p = startWith({ error: 'bad' }, savedJson);
+assert.deepEqual([p.partsError, p.parts, p.stock, p.plan, p.done], ['bad', [], saved.stock, saved.plan, saved.done]);
+// ... and saving in that state keeps the old fingerprint, so a fixed parts.json gets plan and ticks back
+const kept = { ...S(), ...p, stock: [...saved.stock, { id: 9, t: 1, w: 1, l: 1, count: 1, price: null, unit: 'pc' }] };
+p = startWith(parseParts(JSON.stringify({ project: 'Workbench', parts: EXAMPLE_PARTS })), serialize(kept));
+assert.deepEqual([p.plan, p.done, p.stock.length], [saved.plan, saved.done, saved.stock.length + 1]);
+// a parts change at runtime goes through the same path: startWith(loaded, serialize(state))
+p = startWith(ok, serialize(saved));
+assert.deepEqual([p.plan, p.done, p.planVersion], [null, {}, 0]);
+
+console.log('view.check.js: shell, tab bar, stock, plan screen, persistence and part list checks passed');

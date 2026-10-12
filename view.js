@@ -219,8 +219,108 @@ const stockScreen = s => `<main class="screen"><div class="scroll stock">
     ${settingsCard(s)}
   </div>${dock(s)}</main>`;
 
-// Placeholder until the Plan screen (sc-tjk.4) lands.
+// ---- Plan transitions ----
+
+// One selected part app-wide; tapping it again (drawing or list) clears it.
+export const selectPart = (s, uid) => ({ selectedPartUid: s.selectedPartUid === uid ? null : uid });
+export const toggleDone = (s, uid) => ({ done: { ...s.done, [uid]: !s.done[uid] } });
+export const toggleZoom = (s, i) => ({ zoom: { ...s.zoom, [i]: !s.zoom[i] } });
+
+// ---- Plan rendering ----
+
+const dimsText = (...v) => v.map(esc).join(X);
+const partName = p => esc(p.name + (p.copy ? ' ' + p.copy : ''));
+
+function summary(t) {
+  const stat = (label, value) => `<div class="stat"><span class="stat-cap">${label}</span><span class="stat-n">${value}</span></div>`;
+  return `<section class="summary">
+    <div class="stack6"><span class="kicker">Workbench · cutting plan</span><span class="buy">Buy ${plural(t.slabCount, 'slab')}</span></div>
+    <div class="stats">${stat('Volume', `${t.volumeM3.toFixed(3)} m³`)}${stat('Waste', t.slabCount ? `${Math.round(t.wastePct)} %` : '—')}`
+    + `${t.price != null ? stat('Total', eur(t.price)) : ''}</div>
+    ${t.price != null && t.unpricedSlabs ? `<span class="excl">Total excludes ${plural(t.unpricedSlabs, 'slab')} without a price</span>` : ''}
+  </section>`;
+}
+
+// One row per distinct unplaced part (name + size), with the stock size the mill would need.
+function unplacedBlock(un) {
+  if (!un.length) return '';
+  const groups = {};
+  un.forEach(p => { (groups[[p.name, p.t, p.cw, p.cl].join('|')] ||= { p, n: 0 }).n++; });
+  return `<section class="warn-box">
+    <div class="warn-head"><span class="warn-dot">!</span><span class="warn-title">${plural(un.length, 'part')} can't be cut from the stock entered</span></div>
+    <p class="warn-text">Ask the mill for stock at least this size (T × W × L, allowances included):</p>
+    <div>${Object.values(groups).map(({ p, n }) => `<div class="unplaced-row">`
+      + `<span class="u-head"><span class="u-name">${esc(p.name)}</span><span class="u-n">×${n}</span></span>`
+      + `<span class="u-need">≥ ${dimsText(p.t, p.cw, p.cl)}</span><span class="meta">${esc(p.reason)}</span></div>`).join('')}</div>
+  </section>`;
+}
+
+// One row per stock entry used, in stock-list order (slabs are sorted by stockIdx).
+function shoppingList(slabs) {
+  const groups = {};
+  slabs.forEach(sl => (groups[sl.stockIdx] ||= []).push(sl));
+  return `<section class="card shop"><div class="kicker">Shopping list</div>
+    ${Object.values(groups).map(g => `<div class="shop-row"><span class="shop-n">${g.length} ×</span>`
+      + `<span class="shop-dims">${dimsText(g[0].t, g[0].w, g[0].l)}</span>`
+      + `<span class="shop-price">${g[0].price == null ? 'no price' : eur(g[0].price * g.length)}</span></div>`).join('')}
+  </section>`;
+}
+
+// The drawing IS the plan: an SVG whose viewBox is the slab in mm (length along x) and one
+// <rect data-uid> per part at the plan's x, y, cut length, cut width. test.html reads it back.
+// Labels are HTML on top (SVG text would scale with the slab); they let taps through to the rect.
+function slabCard(s, sl, si) {
+  const zoom = !!s.zoom[si], sv = volume(sl);
+  const pv = sl.parts.reduce((a, pp) => a + volume(pp.p), 0);
+  const doneN = sl.parts.filter(pp => s.done[pp.p.uid]).length, all = doneN === sl.parts.length;
+  const pct = (v, of) => `${v / of * 100}%`;
+  let info = '<span class="info">Tap a part in the drawing</span>';
+  const rects = [], labels = [], rows = [];
+  sl.parts.forEach(({ p, x, y }, i) => {
+    const sel = s.selectedPartUid === p.uid, done = !!s.done[p.uid], st = sel ? ' sel' : done ? ' done' : '';
+    if (sel) info = `<span class="info sel">${i + 1} · ${partName(p)} — ${dimsText(p.t, p.w, p.l)} · at ${fmt(x)} along, ${fmt(y)} across</span>`;
+    rects.push(`<rect class="part${st}" data-action="sel" data-uid="${p.uid}" x="${x}" y="${y}" width="${p.cl}" height="${p.cw}"/>`);
+    labels.push(`<span class="plabel${st}" style="left:${pct(x, sl.l)};top:${pct(y, sl.w)};width:${pct(p.cl, sl.l)};height:${pct(p.cw, sl.w)}">`
+      + `${i + 1}${zoom ? '  ' + partName(p) : ''}</span>`);
+    rows.push(`<div class="prow${sel ? ' sel' : ''}${done ? ' done' : ''}">
+      <button type="button" id="done-${p.uid}" class="tick" data-action="done" data-uid="${p.uid}" aria-label="Mark as cut" aria-pressed="${done}"><span class="box">${done ? '✓' : ''}</span></button>
+      <button type="button" id="sel-${p.uid}" class="pick" data-action="sel" data-uid="${p.uid}">
+        <span class="pname"><span class="pnum">${i + 1}</span><span class="pn">${partName(p)}</span></span>
+        <span class="meta">${dimsText(p.t, p.w, p.l)} · cut ${p.cw}${X}${p.cl}${sl.t > p.t ? ` · plane ${sl.t}→${esc(p.t)}` : ''}</span>
+      </button>
+    </div>`);
+  });
+  return `<section class="card slab">
+    <div class="slab-head"><span class="slab-num">${si + 1}</span>
+      <span class="slab-main"><span class="slab-dims">${dimsText(sl.t, sl.w, sl.l)}</span>`
+    + `<span class="meta">${m3(sv)} m³ · ${Math.round((1 - pv / sv) * 100)}% waste${sl.price != null ? ' · ' + eur(sl.price) : ''}</span></span>
+      <span class="prog${all ? ' all' : ''}">${doneN}/${sl.parts.length} cut</span></div>
+    <div class="hscroll" id="draw-${si}"><div class="draw${zoom ? ' zoomed' : ''}">`
+    + `<svg viewBox="0 0 ${sl.l} ${sl.w}" style="aspect-ratio:${sl.l} / ${sl.w}" role="img" aria-label="Slab ${si + 1} cutting layout">${rects.join('')}</svg>`
+    + `${labels.join('')}</div></div>
+    <div class="slab-info">${info}<button type="button" id="zoom-${si}" class="zoom" data-action="zoom" data-slab="${si}">${zoom ? 'Fit' : 'Zoom'}</button></div>
+    <div class="prows">${rows.join('')}</div>
+  </section>`;
+}
+
 // A screen is <main class="screen"> holding a .scroll area and an optional .dock.
-const planScreen = s => `<main class="screen"><div class="scroll"><h1>Plan</h1></div></main>`;
+function planScreen(s) {
+  if (!s.plan) return `<main class="screen"><div class="scroll noplan">
+    <div class="noplan-title">No plan yet</div>
+    <p>Enter the stock the mill has on the Stock tab, then calculate.</p>
+    <button type="button" class="card goto" data-action="tab" data-tab="stock">Go to Stock</button>
+  </div></main>`;
+  const { slabs, unplaced, totals } = s.plan;
+  const stale = s.version === s.planVersion ? '' : `<div class="stale"><span>Stock or settings changed since this plan was made.</span>`
+    + `<button type="button" id="recalc" class="recalc" data-action="calc"${s.stock.length ? '' : ' disabled'}>Recalculate</button></div>`;
+  return `<main class="screen"><div class="scroll plan">
+    ${stale}${summary(totals)}${unplacedBlock(unplaced)}
+    ${slabs.length ? `${shoppingList(slabs)}
+      <div class="section-head slabs-head"><h2 class="h2">Slabs</h2><span class="muted">Tap a part to identify it</span></div>
+      ${slabs.map((sl, i) => slabCard(s, sl, i)).join('')}` : ''}
+  </div><div class="dock plan-dock">
+    <button type="button" id="adjust" class="adjust" data-action="tab" data-tab="stock">‹ Adjust stock</button>
+  </div></main>`;
+}
 
 export const render = s => (s.tab === 'plan' ? planScreen(s) : stockScreen(s)) + tabBar(s);

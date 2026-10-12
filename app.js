@@ -14,10 +14,15 @@ export function set(patch) {
   const tab = state.tab, scroll = root.querySelector('.scroll')?.scrollTop ?? 0;
   const a = document.activeElement, focusId = root.contains(a) ? a.id : '';
   const sel = a?.selectionStart != null ? [a.selectionStart, a.selectionEnd] : null;
+  const hs = [...root.querySelectorAll('.hscroll')].map(e => [e.id, e.scrollLeft]);
   Object.assign(state, typeof patch === 'function' ? patch(state) : patch);
   root.innerHTML = V.render(state);
   // keep scroll position and focus (by element id) across the re-render
-  if (state.tab === tab) root.querySelector('.scroll').scrollTop = scroll;
+  // (and the sideways scroll of zoomed slab drawings)
+  if (state.tab === tab) {
+    root.querySelector('.scroll').scrollTop = scroll;
+    hs.forEach(([id, x]) => { const e = $(id); if (e) e.scrollLeft = x; });
+  }
   const el = focusId && $(focusId);
   if (el) { el.focus({ preventScroll: true }); if (sel) el.setSelectionRange(...sel); }
 }
@@ -62,7 +67,10 @@ const actions = {
   count: el => set({ form: V.stepCount(state.form, el.dataset.op) }),
   unit: () => set({ form: V.toggleUnit(state.form) }),
   add: submit,
-  calc: () => set(V.calculate(state))
+  calc: () => set(V.calculate(state)),
+  sel: el => set(V.selectPart(state, el.dataset.uid)),
+  done: el => set(V.toggleDone(state, el.dataset.uid)),
+  zoom: el => set(V.toggleZoom(state, +el.dataset.slab))
 };
 
 let dragEnd = 0;

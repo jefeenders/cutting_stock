@@ -1,12 +1,14 @@
-// Self-check for view.js (app shell, tab bar, Stock screen). Run: node view.check.js
+// Self-check for view.js (app shell, tab bar, Stock and Plan screens). Run: node view.check.js
 import assert from 'node:assert/strict';
 import {
   render, esc, initialState, cleanDigits, cleanPrice, canAdd, submitStock, startEdit, cancelEdit,
-  deleteStock, stepCount, toggleUnit, setSetting, calculate
+  deleteStock, stepCount, toggleUnit, setSetting, calculate, selectPart, toggleDone, toggleZoom
 } from './view.js';
+import { EXAMPLE_STOCK, EXAMPLE_STOCK_WARNING } from './cutting-plan.js';
+import { checkPlan } from './check.js';
 
 const S = patch => ({ ...initialState(), ...patch });
-const tab = (html, key) => html.match(new RegExp(`<button[^>]*data-tab="${key}"[^]*?</button>`))[0];
+const tab = (html, key) => html.match(new RegExp(`<button[^>]*role="tab"[^>]*data-tab="${key}"[^]*?</button>`))[0];
 const plan = (unplaced = []) => ({ slabs: [], unplaced, totals: {} });
 
 // active tab is marked, the other is not
@@ -160,4 +162,111 @@ html = render(S({ partsOpen: true, parts: [{ name: '<img src=x>', t: 1, w: 2, l:
 assert.doesNotMatch(html, /<img src=x>|"><b>/);
 assert.match(html, /&lt;img src=x&gt;/);
 
-console.log('view.check.js: shell, tab bar and stock screen checks passed');
+
+// ---- Plan screen ----
+// no plan yet
+html = render(S({ tab: 'plan' }));
+assert.match(text(html), /No plan yet/);
+assert.match(text(html), /Enter the stock the mill has on the Stock tab, then calculate\./);
+assert.match(html, /<button[^>]*data-action="tab" data-tab="stock"[^>]*>Go to Stock</);
+assert.doesNotMatch(html, /<svg/);
+
+const planned = stock => { const s0 = S({ stock }); return { ...s0, ...calculate(s0) }; };
+const full = planned(EXAMPLE_STOCK), warn = planned(EXAMPLE_STOCK_WARNING);
+const rows = (h, cls) => [...h.matchAll(new RegExp(`<div class="${cls}">([^]*?)</div>`, 'g'))].map(m => m[1].replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim());
+
+// summary: 2×(100·260·2400) + 90·300·3000 + 2×(50·280·2500) = 0.2758 m³; €310·2 + €2400·0.081 + 2·€2100·0.035 = €961.4
+html = render(full);
+assert.match(text(html), /Workbench · cutting plan/i);
+assert.match(text(html), /Buy 5 slabs/);
+assert.match(text(html), /Volume\s*0\.276 m³/);
+assert.match(text(html), /Waste\s*34 %/);
+assert.match(text(html), /Total\s*€961/);
+assert.doesNotMatch(text(html), /Total excludes/);
+assert.doesNotMatch(text(html), /changed since this plan/);
+assert.doesNotMatch(text(html), /can't be cut/);
+assert.deepEqual(rows(html, 'shop-row'), ['2 × 100 × 260 × 2400 €620', '1 × 90 × 300 × 3000 €194', '2 × 50 × 280 × 2500 €147']);
+assert.match(text(html), /Slabs\s*Tap a part to identify it/);
+assert.match(html, /data-action="tab" data-tab="stock"[^>]*>‹ Adjust stock</);
+// slab cards: header, meta, progress; parts numbered per slab, plane hint when the slab is thicker
+assert.match(text(html), /3\s*90 × 300 × 3000\s*0\.081 m³ · \d+% waste · €194\s*0\/5 cut/);
+assert.match(text(html), /2\s*Leg 2\/4\s*90 × 130 × 725 · cut 135 × 745(?! · plane)/);
+assert.match(text(html), /1\s*Leg_Vise_Body\s*45 × 247 × 755 · cut 252 × 775 · plane 50→45/);
+assert.equal((html.match(/Tap a part in the drawing/g) || []).length, 5);
+
+// stale banner only when stock/settings changed after the plan
+assert.match(text(render({ ...full, version: full.version + 1 })), /Stock or settings changed since this plan was made\.\s*Recalculate/);
+assert.match(render({ ...full, version: full.version + 1 }), /<button[^>]*data-action="calc"[^>]*>Recalculate</);
+assert.doesNotMatch(render({ ...full, planVersion: full.version }), /Recalculate/);
+
+// warning scenario: one row per distinct unplaced part, required size includes allowances
+html = render(warn);
+assert.match(text(html), /Buy 4 slabs/);
+assert.match(text(html), /Total\s*€341\s*Total excludes 1 slab without a price/);
+assert.match(text(html), /2 parts can't be cut from the stock entered/);
+assert.match(text(html), /Ask the mill for stock at least this size \(T × W × L, allowances included\):/);
+assert.deepEqual(rows(html, 'unplaced-row'), [
+  'Tischplatte_hinten ×1 ≥ 100 × 260 × 2296 No stock 100 mm or thicker',
+  'Tischplatte_vorn ×1 ≥ 100 × 220 × 2252 No stock 100 mm or thicker'
+]);
+assert.deepEqual(rows(html, 'shop-row'), ['1 × 90 × 300 × 3000 €194', '2 × 50 × 280 × 2500 €147', '1 × 50 × 240 × 1500 no price']);
+assert.match(text(render(planned([{ id: 1, t: 10, w: 10, l: 10, count: 1, price: null, unit: 'pc' }]))), /Buy 0 slabs\s*Volume\s*0\.000 m³\s*Waste\s*—/);
+
+// round trip: the drawing is the plan. viewBox = slab in mm, one rect per part at plan x/y/cl/cw.
+function readPlan(h, plan) {
+  const byUid = Object.fromEntries(plan.slabs.flatMap(sl => sl.parts.map(pp => [pp.p.uid, pp.p])));
+  return [...h.matchAll(/<svg[^>]*viewBox="0 0 (\d+) (\d+)"[^>]*>([^]*?)<\/svg>/g)].map(([, l, w, inner]) => ({
+    l: +l, w: +w,
+    parts: [...inner.matchAll(/<rect[^>]*data-uid="([^"]+)"[^>]*>/g)].map(([r, uid]) => {
+      const a = n => +r.match(new RegExp(` ${n}="([^"]+)"`))[1];
+      return { uid, x: a('x'), y: a('y'), cl: a('width'), cw: a('height'), p: byUid[uid] };
+    })
+  }));
+}
+for (const st of [full, warn]) {
+  const drawn = readPlan(render(st), st.plan);
+  const brief = slabs => slabs.map(sl => ({ l: sl.l, w: sl.w, parts: sl.parts.map(pp => [pp.p.uid, pp.x, pp.y, pp.p.cl, pp.p.cw]) }));
+  assert.deepEqual(brief(drawn), brief(st.plan.slabs));
+  const rebuilt = { ...st.plan, slabs: st.plan.slabs.map((sl, i) => ({ ...sl, parts: drawn[i].parts.map(({ p, x, y }) => ({ p, x, y })) })) };
+  checkPlan(st.parts, st.stock, st.settings, rebuilt);
+}
+
+// selection: one part app-wide, toggles; drawing and list both mark it, info line gives the offset
+const leg2 = full.plan.slabs[2].parts[1].p.uid;
+assert.deepEqual(selectPart(full, leg2), { selectedPartUid: leg2 });
+assert.deepEqual(selectPart({ ...full, selectedPartUid: leg2 }, leg2), { selectedPartUid: null });
+assert.deepEqual(selectPart({ ...full, selectedPartUid: 'p0' }, leg2), { selectedPartUid: leg2 });
+html = render({ ...full, selectedPartUid: leg2 });
+assert.match(html, new RegExp(`<rect class="part sel"[^>]*data-uid="${leg2}"`));
+assert.equal((html.match(/class="part sel"/g) || []).length, 1);
+assert.match(html, new RegExp(`class="prow sel"[^]*?data-uid="${leg2}"`));
+assert.match(text(html), /2 · Leg 2\/4 — 90 × 130 × 725 · at 749 along, 0 across/);
+assert.equal((html.match(/Tap a part in the drawing/g) || []).length, 4);
+
+// cut ticks: per part instance, progress pill fills when the slab is done
+assert.deepEqual(toggleDone(full, 'p0'), { done: { p0: true } });
+assert.deepEqual(toggleDone({ ...full, done: { p0: true } }, 'p0'), { done: { p0: false } });
+html = render({ ...full, done: { p0: true, p3: true } });
+assert.match(html, /<rect class="part done"[^>]*data-uid="p0"/);
+assert.match(html, /<button[^>]*data-action="done" data-uid="p0"[^>]*aria-pressed="true"/);
+assert.match(html, /<button[^>]*data-action="done" data-uid="p1"[^>]*aria-pressed="false"/);
+assert.match(html, /class="prog all">1\/1 cut/);
+assert.match(html, /class="prog">1\/5 cut/);
+
+// zoom per slab: label, wider drawing, names on parts; rect coordinates unchanged
+assert.deepEqual(toggleZoom(full, 2), { zoom: { 2: true } });
+assert.deepEqual(toggleZoom({ ...full, zoom: { 2: true } }, 2), { zoom: { 2: false } });
+const zoomed = render({ ...full, zoom: { 2: true } });
+assert.equal((zoomed.match(/data-action="zoom"[^>]*>Fit</g) || []).length, 1);
+assert.equal((zoomed.match(/data-action="zoom"[^>]*>Zoom</g) || []).length, 4);
+assert.match(zoomed, /class="draw zoomed"/);
+assert.match(text(zoomed), /2\s+Leg/);
+assert.deepEqual(readPlan(zoomed, full.plan), readPlan(render(full), full.plan));
+
+// part names in the plan are escaped
+const evil = S({ parts: [{ name: '<i>x', t: 40, w: 50, l: 60, n: 1 }], stock: EXAMPLE_STOCK });
+html = render({ ...evil, ...calculate(evil), selectedPartUid: 'p0', zoom: { 0: true } });
+assert.doesNotMatch(html, /<i>x/);
+assert.match(html, /&lt;i&gt;x/);
+
+console.log('view.check.js: shell, tab bar, stock and plan screen checks passed');

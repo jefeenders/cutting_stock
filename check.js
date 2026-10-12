@@ -62,7 +62,16 @@ export function checkPlan(parts, stock, set = DEFAULT_SETTINGS, plan) {
     const fit = stock.find((s, i) => (s.count == null || used[i] < s.count) && s.t >= p.t && s.w >= p.cw && s.l >= p.cl);
     ok(!fit, `${p.uid} unplaced but stock ${fit?.id} still fits it`);
   }
-  ok(plan.totals.slabCount === plan.slabs.length, 'totals.slabCount wrong');
+  // totals (shown in the Plan summary), recomputed from the slabs and the stock entries they came from
+  const t = plan.totals, vol = x => x.t * x.w * x.l, near = (a, b) => Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(b));
+  const slabVol = plan.slabs.reduce((a, sl) => a + vol(sl), 0), partVol = placed.reduce((a, p) => a + vol(p), 0);
+  const prices = plan.slabs.map(sl => stock[sl.stockIdx])
+    .filter(s => s.price != null).map(s => (s.unit === 'pc' ? s.price : s.price * vol(s) / 1e9));
+  ok(t.slabCount === plan.slabs.length, 'totals.slabCount wrong');
+  ok(near(t.volumeM3, slabVol / 1e9), `totals.volumeM3 ${t.volumeM3}, slabs hold ${slabVol / 1e9}`);
+  ok(near(t.wastePct, slabVol ? (1 - partVol / slabVol) * 100 : 0), `totals.wastePct ${t.wastePct} wrong`);
+  ok(prices.length ? near(t.price, prices.reduce((a, p) => a + p, 0)) : t.price === null, `totals.price ${t.price} wrong`);
+  ok(t.unpricedSlabs === plan.slabs.length - prices.length, 'totals.unpricedSlabs wrong');
 }
 
 // ---------------------------------------------------------------- Node runner

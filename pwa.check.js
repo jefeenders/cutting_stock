@@ -1,6 +1,8 @@
 // Self-check for the PWA files: manifest, icons, service worker precache list. Run: node pwa.check.js
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
 const read = f => readFileSync(new URL(f, import.meta.url), 'utf8');
 const exists = f => existsSync(new URL(f, import.meta.url));
@@ -55,5 +57,28 @@ for (const f of listed) assert.ok(exists(f), `${f} exists`);
 assert.equal(files.length, listed.size + 1, 'no duplicates');
 assert.match(sw, /const VERSION = '[^']+'/);
 assert.match(read('app.js'), /navigator\.serviceWorker\.register\('sw\.js'\)/);
+
+// VERSION guard: precached files changed since HEAD but VERSION didn't -> phones keep the old files
+assert.equal(versionError([], 'v1', 'v1'), null);
+assert.equal(versionError(['app.js'], 'v1', 'v2'), null);
+assert.equal(versionError(['app.js'], null, 'v1'), null, 'no sw.js in HEAD: nothing to compare');
+assert.match(versionError(['app.js', 'style.css'], 'v1', 'v1'), /app\.js, style\.css changed .* VERSION is still 'v1'/);
+function versionError(changed, oldVersion, newVersion) {
+  if (!changed.length || oldVersion === null || oldVersion !== newVersion) return null;
+  return `${changed.join(', ')} changed since HEAD but sw.js VERSION is still '${oldVersion}': bump it`;
+}
+// --staged (pre-commit hook): compare the index with HEAD; otherwise the working tree with HEAD
+const staged = process.argv.includes('--staged');
+const git = (...a) => execFileSync('git', a, { cwd: fileURLToPath(new URL('.', import.meta.url)), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+const swVersion = src => src.match(/const VERSION = '([^']+)'/)?.[1] ?? null;
+let changed;
+try { changed = git('diff', '--name-only', '--relative', ...(staged ? ['--cached'] : []), 'HEAD', '--', ...listed).split('\n').filter(Boolean); }
+catch { console.log('pwa.check.js: no git or no HEAD, VERSION guard skipped'); }
+if (changed) {
+  let oldVersion = null;
+  try { oldVersion = swVersion(git('show', 'HEAD:sw.js')); } catch { /* sw.js not in HEAD yet */ }
+  const err = versionError(changed, oldVersion, swVersion(staged ? git('show', ':sw.js') : sw));
+  if (err) { console.error('pwa.check.js: ' + err); process.exit(1); }
+}
 
 console.log('pwa.check.js: manifest, icons, apple meta and precache list checks passed');

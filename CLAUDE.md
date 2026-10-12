@@ -44,6 +44,8 @@ each one.
 - Checks: `node check.js && node view.check.js && node pwa.check.js` must pass before every commit.
 - Service worker: bump `VERSION` in `sw.js` whenever an app file changes, and list new app files in `FILES`
   (`pwa.check.js` enforces the list). Phones pick up a deploy on the second visit after it.
+  `pwa.check.js` also fails if a precached file differs from HEAD while `VERSION` equals HEAD's; the
+  pre-commit hook (`.beads/hooks/pre-commit`, below the beads markers) runs it with `--staged`.
 
 ## Onshape access (tested 2026-10-12)
 

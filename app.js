@@ -151,3 +151,6 @@ root.addEventListener('pointerup', e => endDrag(e, false));
 root.addEventListener('pointercancel', e => endDrag(e, true));
 
 set({});
+
+// Offline at the mill: sw.js caches the app files (and fonts) after the first online visit.
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});

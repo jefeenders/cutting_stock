@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- App icon source. A slab (offcut hatch colour) ripped into two strips and crosscut into parts.
+       Full-bleed background; the motif stays inside the maskable safe circle (r 205).
+       PNGs (icon-180/192/512.png) are screenshots of this file in headless Chrome. -->
+  <rect width="512" height="512" fill="#2c455d"/>
+  <rect x="88" y="160" width="336" height="192" rx="4" fill="#94bce3"/>
+  <g fill="#eef6ff">
+    <rect x="100" y="172" width="168" height="84"/>
+    <rect x="280" y="172" width="132" height="84"/>
+    <rect x="100" y="268" width="232" height="72"/>
+  </g>
+</svg>

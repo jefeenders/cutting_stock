@@ -41,6 +41,9 @@ each one.
 - Units: millimetres everywhere.
 - Keep it small: few files, no frameworks, no dependencies unless they clearly earn their place.
 - Core packing logic lives in one plain JS module with an assert-based self-check runnable in Node.
+- Checks: `node check.js && node view.check.js && node pwa.check.js` must pass before every commit.
+- Service worker: bump `VERSION` in `sw.js` whenever an app file changes, and list new app files in `FILES`
+  (`pwa.check.js` enforces the list). Phones pick up a deploy on the second visit after it.
 
 ## Onshape access (tested 2026-10-12)
 

@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/industry-c6bd3acc-1351-4f81-a75d-e8afd4b252b0/styles.css">
+<script src="_ds/industry-c6bd3acc-1351-4f81-a75d-e8afd4b252b0/_ds_bundle.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;700&family=Barlow+Condensed:wght@400;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f2f2f3}
+a{color:#416180}
+a:hover{color:#2c455d}
+input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+input:focus{outline:none}
+input::placeholder{color:#98989b}
+button{font-family:inherit;cursor:pointer}
+button:focus-visible{outline:2px solid #5980a6;outline-offset:2px}
+button:disabled{cursor:not-allowed}
+</style>
+</helmet>
+<div style="position:absolute;inset:0;display:flex;flex-direction:column;background:{{ T.bg }};color:{{ T.ink }};font-family:'Barlow',system-ui,sans-serif;font-size:16px;overflow:hidden;-webkit-tap-highlight-color:transparent">
+
+<sc-if value="{{ isStock }}" hint-placeholder-val="{{ true }}">
+<div style="flex:1;display:flex;flex-direction:column;min-height:0">
+  <div ref="{{ scrollRef }}" style="flex:1;overflow-y:auto;padding:12px 18px 22px;display:flex;flex-direction:column;gap:22px">
+
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="font:500 11px/1 'Barlow',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:{{ T.accentInk }}">Project</div>
+      <h1 style="margin:0;font:600 32px/1.05 'Barlow Condensed',sans-serif;letter-spacing:-.015em">Workbench</h1>
+      <button onClick="{{ toggleParts }}" style="display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:48px;padding:0 14px;background:{{ T.card }};border:{{ T.cardBd }};border-radius:{{ T.radius }};color:{{ T.ink }};font:500 17px/1.2 'Barlow',sans-serif;text-align:left">
+        <span>{{ partsSummary }}</span>
+        <span style="font:500 14px/1 'Barlow',sans-serif;color:{{ T.accentInk }}">{{ partsToggleLabel }}</span>
+      </button>
+      <sc-if value="{{ partsOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="background:{{ T.card }};border:{{ T.cardBd }};border-radius:{{ T.radius }};padding:4px 14px">
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) auto 32px;gap:8px;padding:8px 0 6px;font:500 11px/1 'Barlow',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:{{ T.muted }}">
+            <span>Part</span><span>T × W × L mm</span><span style="text-align:right">Qty</span>
+          </div>
+          <sc-for list="{{ partRows }}" as="p" hint-placeholder-count="9">
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) auto 32px;gap:8px;align-items:baseline;padding:9px 0;border-top:1px solid {{ T.rule }}">
+              <span style="font:400 15px/1.2 'Barlow',sans-serif;overflow-wrap:anywhere">{{ p.name }}</span>
+              <span style="font:600 16px/1.2 'Barlow Condensed',sans-serif;font-variant-numeric:tabular-nums">{{ p.dims }}</span>
+              <span style="font:600 16px/1.2 'Barlow Condensed',sans-serif;text-align:right">{{ p.n }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+        <h2 style="margin:0;font:600 22px/1.1 'Barlow Condensed',sans-serif;letter-spacing:-.01em">Stock at the mill</h2>
+        <span style="font:400 14px/1 'Barlow',sans-serif;color:{{ T.muted }}">{{ stockCountLabel }}</span>
+      </div>
+      <sc-if value="{{ hasStock }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <sc-for list="{{ stockRows }}" as="r" hint-placeholder-count="3">
+            <div style="position:relative;border-radius:{{ T.radius }};overflow:hidden">
+              <button onClick="{{ r.onDelete }}" style="position:absolute;top:0;right:0;bottom:0;width:100px;padding-left:12px;border:0;border-radius:{{ T.radius }};background:{{ T.warn }};color:#fff;font:500 16px/1 'Barlow',sans-serif;opacity:{{ r.delOp }}">Delete</button>
+              <div onPointerDown="{{ r.onDown }}" onPointerMove="{{ r.onMove }}" onPointerUp="{{ r.onUp }}" onPointerCancel="{{ r.onCancel }}" style="position:relative;display:flex;align-items:center;gap:12px;min-height:66px;padding:10px 12px 10px 14px;box-sizing:border-box;background:{{ r.bg }};border:{{ T.bw }} solid {{ r.border }};border-radius:{{ T.radius }};transform:translateX({{ r.dx }}px);transition:{{ r.trans }};touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:pointer">
+                <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
+                  <div style="font:600 {{ T.dims }}/1 'Barlow Condensed',sans-serif;font-variant-numeric:tabular-nums;white-space:nowrap">{{ r.t }}<span style="color:{{ T.faint }};font-weight:400"> × </span>{{ r.w }}<span style="color:{{ T.faint }};font-weight:400"> × </span>{{ r.l }}</div>
+                  <div style="font:400 13px/1.2 'Barlow',sans-serif;color:{{ T.muted }}">{{ r.sub }}</div>
+                </div>
+                <div style="flex:none;min-width:54px;height:46px;padding:0 8px;box-sizing:border-box;border:{{ T.bw }} solid {{ T.countBd }};border-radius:{{ T.radius }};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:{{ T.accentInk }}">
+                  <span style="font:600 21px/1 'Barlow Condensed',sans-serif">{{ r.count }}</span>
+                  <span style="font:500 9px/1 'Barlow',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:{{ T.muted }}">avail.</span>
+                </div>
+              </div>
+            </div>
+          </sc-for>
+          <div style="font:400 13px/1.3 'Barlow',sans-serif;color:{{ T.muted }};padding:0 2px">Tap an entry to edit · swipe left to delete</div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ noStock }}" hint-placeholder-val="{{ false }}">
+        <div style="border:{{ T.bw }} dashed {{ T.faint }};border-radius:{{ T.radius }};padding:20px 16px;display:flex;flex-direction:column;gap:12px">
+          <div style="font:600 22px/1.1 'Barlow Condensed',sans-serif">No stock entered yet</div>
+          <div style="font:400 15px/1.45 'Barlow',sans-serif;color:{{ T.muted }};text-wrap:pretty">Walk the yard and enter each slab size the mill has today using the fields below. The thickness stays filled in for the next board.</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="font:500 11px/1 'Barlow',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:{{ T.accentInk }}">Your parts need</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              <sc-for list="{{ thickChips }}" as="c" hint-placeholder-count="5">
+                <span style="padding:6px 10px;border:{{ T.bw }} solid {{ T.countBd }};border-radius:{{ T.radius }};font:600 16px/1 'Barlow Condensed',sans-serif;color:{{ T.accentInk }}">{{ c }}</span>
+              </sc-for>
+            </div>
+          </div>
+          <div style="font:500 14px/1 'Barlow',sans-serif">↓ Start with the thickness</div>
+        </div>
+      </sc-if>
+    </div>
+
+    <div style="background:{{ T.card }};border:{{ T.cardBd }};border-radius:{{ T.radius }}">
+      <button onClick="{{ toggleSettings }}" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:50px;padding:0 14px;background:transparent;border:0;color:{{ T.ink }};text-align:left">
+        <span style="font:500 16px/1 'Barlow',sans-serif">Cutting settings</span>
+        <span style="font:400 14px/1 'Barlow',sans-serif;color:{{ T.muted }}">{{ settingsSummary }}</span>
+      </button>
+      <sc-if value="{{ settingsOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:2px 14px 14px">
+          <sc-for list="{{ settingFields }}" as="sf" hint-placeholder-count="3">
+            <label style="display:flex;flex-direction:column;gap:6px">
+              <span style="font:500 11px/1.1 'Barlow',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:{{ T.muted }}">{{ sf.label }}</span>
+              <span style="display:flex;align-items:center;height:46px;padding:0 10px;border:{{ T.inputBd }};border-radius:{{ T.radius }};background:{{ T.inputBg }}">
+                <input value="{{ sf.value }}" onChange="{{ sf.onChange }}" inputMode="numeric" style="width:100%;min-width:0;border:0;background:transparent;font:600 21px/1 'Barlow Condensed',sans-serif;color:{{ T.ink }};padding:0">
+                <span style="font:400 13px/1 'Barlow',sans-serif;color:{{ T.muted }}">mm</span>
+              </span>
+            </label>
+          </sc-for>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+
+  <div style="flex:none;display:flex;flex-direction:column;gap:10px;padding:12px 18px 12px;background:{{ T.dock }};border-top:{{ T.dockBd }}">
+    <div style="display:flex;align-items:center;justify-content:space-between;min-height:20px">
+      <span style="font:500 12px/1 'Barlow',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:{{ T.accentInk }}">{{ dockTitle }}</span>
+      <sc-if value="{{ editing }}" hint-placeholder-val="{{ false }}">
+        <button onClick="{{ cancelEdit }}" style="border:0;background:none;padding:4px 0;font:500 15px/1 'Barlow',sans-serif;color:{{ T.accentInk }};text-decoration:underline;text-underline-offset:3px">Cancel</button>
+      </sc-if>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">
+      <sc-for list="{{ dimFields }}" as="d" hint-placeholder-count="3">
+        <label style="display:flex;flex-direction:column;justify-content:center;gap:3px;height:62px;padding:0 10px;box-sizing:border-box;border:{{ T.bw }} solid {{ d.border }};border-radius:{{ T.radius }};background:{{ T.inputBg }};box-shadow:{{ d.ring }}">
+          <span style="font:500 11px/1 'Barlow',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:{{ T.muted }}">{{ d.label }}</span>
+          <input ref="{{ d.ref }}" value="{{ d.value }}" placeholder="{{ d.ph }}" onChange="{{ d.onChange }}" onKeyDown="{{ d.onKey }}" onFocus="{{ d.onFocus }}" onBlur="{{ d.onBlur }}" inputMode="numeric" enterKeyHint="{{ d.enter }}" style="width:100%;min-width:0;border:0;background:transparent;padding:0;font:600 28px/1 'Barlow Condensed',sans-serif;font-variant-numeric:tabular-nums;color:{{ T.ink }};caret-color:#5980a6">
+        </label>
+      </sc-for>
+    </div>
+    <div style="display:flex;gap:8px;height:52px">
+      <div style="flex:none;display:flex;align-items:stretch;border:{{ T.inputBd }};border-radius:{{ T.radius }};overflow:hidden;background:{{ T.inputBg }}">
+        <button onClick="{{ dec }}" aria-label="Fewer" style="width:38px;border:0;background:transparent;font:400 26px/1 'Barlow',sans-serif;color:{{ T.ink }};padding:0">−</button>
+        <span style="min-width:30px;display:flex;align-items:center;justify-content:center;font:600 22px/1 'Barlow Condensed',sans-serif;border-left:1px solid {{ T.rule }};border-right:1px solid {{ T.rule }};padding:0 4px">{{ countLabel }}</span>
+        <button onClick="{{ inc }}" aria-label="More" style="width:38px;border:0;background:transparent;font:400 26px/1 'Barlow',sans-serif;color:{{ T.ink }};padding:0">+</button>
+        <button onClick="{{ toggleInf }}" aria-label="Unlimited" style="width:42px;border:0;border-left:1px solid {{ T.rule }};background:{{ infBg }};color:{{ infColor }};font:400 22px/1 'Barlow',sans-serif;padding:0">∞</button>
+      </div>
+      <div style="flex:1;min-width:0;display:flex;align-items:center;border:{{ T.inputBd }};border-radius:{{ T.radius }};background:{{ T.inputBg }};padding-left:8px">
+        <span style="font:500 16px/1 'Barlow',sans-serif;color:{{ T.muted }}">€</span>
+        <input value="{{ fPrice }}" placeholder="0" onChange="{{ onPrice }}" onKeyDown="{{ onPriceKey }}" inputMode="decimal" style="flex:1;min-width:0;width:100%;border:0;background:transparent;padding:0 4px;font:600 19px/1 'Barlow Condensed',sans-serif;color:{{ T.ink }}">
+        <button onClick="{{ toggleUnit }}" style="flex:none;height:100%;padding:0 8px;border:0;border-left:1px solid {{ T.rule }};background:transparent;font:500 14px/1 'Barlow',sans-serif;color:{{ T.accentInk }}">{{ unitLabel }}</button>
+      </div>
+      <button onClick="{{ submit }}" disabled="{{ cantAdd }}" style="flex:none;width:76px;border:{{ T.addBd }};border-radius:{{ T.radius }};background:{{ T.add }};color:{{ T.addInk }};font:600 19px/1 'Barlow Condensed',sans-serif;opacity:{{ addOp }}">{{ addLabel }}</button>
+    </div>
+    <button onClick="{{ calculate }}" disabled="{{ noStock }}" style="position:relative;height:56px;border:{{ T.bw }} solid {{ T.cta }};border-radius:{{ T.radius }};background:{{ T.cta }};color:{{ T.ctaInk }};font:600 21px/1 'Barlow Condensed',sans-serif;letter-spacing:.01em;opacity:{{ ctaOp }}">Calculate cutting plan<sc-if value="{{ T.marks }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:-7px;left:-7px;width:11px;height:11px;pointer-events:none;background:{{ T.markBg }}"></span><span style="position:absolute;top:-7px;right:-7px;width:11px;height:11px;pointer-events:none;background:{{ T.markBg }}"></span><span style="position:absolute;bottom:-7px;left:-7px;width:11px;height:11px;pointer-events:none;background:{{ T.markBg }}"></span><span style="position:absolute;bottom:-7px;right:-7px;width:11px;height:11px;pointer-events:none;background:{{ T.markBg }}"></span></sc-if></button>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isPlan }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;display:flex;flex-direction:column;min-height:0">
+  <sc-if value="{{ noPlan }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:12px;padding:24px">
+      <div style="font:600 28px/1.1 'Barlow Condensed',sans-serif">No plan yet</div>
+      <div style="font:400 16px/1.45 'Barlow',sans-serif;color:{{ T.muted }}">Enter the stock the mill has on the Stock tab, then calculate.</div>
+      <button onClick="{{ goStock }}" style="height:52px;padding:0 20px;border:{{ T.cardBd }};border-radius:{{ T.radius }};background:{{ T.card }};font:600 19px/1 'Barlow Condensed',sans-serif;color:{{ T.ink }}">Go to Stock</button>
+    </div>
+  </sc-if>
+  <sc-if value="{{ hasPlan }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;overflow-y:auto;padding:14px 18px 22px;display:flex;flex-direction:column;gap:18px">
+
+      <sc-if value="{{ stale }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 10px 10px 14px;border:{{ T.bw }} solid {{ T.accent }};border-radius:{{ T.radius }};background:{{ T.tint }}">
+          <span style="flex:1;font:400 14px/1.3 'Barlow',sans-serif">Stock or settings changed since this plan was made.</span>
+          <button onClick="{{ calculate }}" style="flex:none;height:44px;padding:0 14px;border:0;border-radius:{{ T.radius }};background:{{ T.cta }};color:{{ T.ctaInk }};font:600 17px/1 'Barlow Condensed',sans-serif">Recalculate</button>
+        </div>
+      </sc-if>
+
+      <div style="position:relative;background:{{ T.sumBg }};color:{{ T.sumInk }};border:{{ T.sumBd }};border-radius:{{ T.radius }};padding:16px 16px 14px;display:flex;flex-direction:column;gap:14px">
+        <sc-if value="{{ T.marks }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:-6px;left:-6px;width:11px;height:11px;pointer-events:none;background:{{ T.markBg }}"></span><span style="position:absolute;top:-6px;right:-6px;width:11px;height:11px;pointer-events:none;background:{{ T.markBg }}"></span><span style="position:absolute;bottom:-6px;left:-6px;width:11px;height:11px;pointer-events:none;background:{{ T.markBg }}"></span><span style="position:absolute;bottom:-6px;right:-6px;width:11px;height:11px;pointer-events:none;background:{{ T.markBg }}"></span></sc-if>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span style="font:500 11px/1 'Barlow',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:{{ T.sumMuted }}">Workbench · cutting plan</span>
+          <span style="font:600 52px/0.95 'Barlow Condensed',sans-serif;letter-spacing:-.02em;color:{{ T.sumNum }}">{{ buyTitle }}</span>
+        </div>
+        <div style="display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:10px;border-top:1px solid {{ T.sumRule }};padding-top:12px">
+          <div style="display:flex;flex-direction:column;gap:5px"><span style="font:500 11px/1 'Barlow',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:{{ T.sumMuted }}">Volume</span><span style="font:600 24px/1 'Barlow Condensed',sans-serif">{{ volLabel }}</span></div>
+          <div style="display:flex;flex-direction:column;gap:5px"><span style="font:500 11px/1 'Barlow',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:{{ T.sumMuted }}">Waste</span><span style="font:600 24px/1 'Barlow Condensed',sans-serif">{{ wasteLabel }}</span></div>
+          <sc-if value="{{ hasTotal }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;flex-direction:column;gap:5px"><span style="font:500 11px/1 'Barlow',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:{{ T.sumMuted }}">Total</span><span style="font:600 24px/1 'Barlow Condensed',sans-serif">{{ totalLabel }}</span></div>
+          </sc-if>
+        </div>
+        <sc-if value="{{ hasUnpriced }}" hint-placeholder-val="{{ false }}">
+          <span style="font:400 13px/1.2 'Barlow',sans-serif;color:{{ T.sumMuted }};margin-top:-6px">{{ unpricedLabel }}</span>
+        </sc-if>
+      </div>
+
+      <sc-if value="{{ hasUnplaced }}" hint-placeholder-val="{{ false }}">
+        <div style="border:{{ T.warnBd }};background:{{ T.warnBg }};border-radius:{{ T.radius }};padding:14px;display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;gap:10px;align-items:flex-start">
+            <span style="flex:none;width:26px;height:26px;border-radius:50%;background:{{ T.warn }};color:#fff;display:flex;align-items:center;justify-content:center;font:700 16px/1 'Barlow',sans-serif">!</span>
+            <span style="font:600 21px/1.1 'Barlow Condensed',sans-serif;color:{{ T.warnInk }}">{{ unplacedTitle }}</span>
+          </div>
+          <div style="font:400 14px/1.35 'Barlow',sans-serif;color:{{ T.warnInk }}">Ask the mill for stock at least this size (T × W × L, allowances included):</div>
+          <div style="display:flex;flex-direction:column">
+            <sc-for list="{{ unplaced }}" as="u" hint-placeholder-count="2">
+              <div style="display:flex;flex-direction:column;gap:3px;padding:10px 0;border-top:1px solid {{ T.warnRule }}">
+                <div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline">
+                  <span style="font:500 16px/1.2 'Barlow',sans-serif;overflow-wrap:anywhere">{{ u.name }}</span>
+                  <span style="font:600 17px/1 'Barlow Condensed',sans-serif">{{ u.n }}</span>
+                </div>
+                <div style="font:600 22px/1.1 'Barlow Condensed',sans-serif;font-variant-numeric:tabular-nums;color:{{ T.warnInk }}">{{ u.need }}</div>
+                <div style="font:400 13px/1.2 'Barlow',sans-serif;color:{{ T.muted }}">{{ u.reason }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ hasSlabs }}" hint-placeholder-val="{{ true }}">
+        <div style="position:relative;background:{{ T.card }};border:{{ T.cardBd }};border-radius:{{ T.radius }};padding:12px 14px 6px">
+          <sc-if value="{{ T.marks }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:-6px;left:-6px;width:11px;height:11px;pointer-events:none;background:{{ T.markBg }}"></span><span style="position:absolute;top:-6px;right:-6px;width:11px;height:11px;pointer-events:none;background:{{ T.markBg }}"></span><span style="position:absolute;bottom:-6px;left:-6px;width:11px;height:11px;pointer-events:none;background:{{ T.markBg }}"></span><span style="position:absolute;bottom:-6px;right:-6px;width:11px;height:11px;pointer-events:none;background:{{ T.markBg }}"></span></sc-if>
+          <div style="font:500 11px/1 'Barlow',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:{{ T.accentInk }};padding-bottom:6px">Shopping list</div>
+          <sc-for list="{{ shopping }}" as="g" hint-placeholder-count="3">
+            <div style="display:flex;align-items:baseline;gap:10px;padding:11px 0;border-top:1px solid {{ T.rule }}">
+              <span style="font:600 26px/1 'Barlow Condensed',sans-serif;min-width:38px;color:{{ T.accentInk }}">{{ g.n }}</span>
+              <span style="flex:1;font:600 24px/1 'Barlow Condensed',sans-serif;font-variant-numeric:tabular-nums">{{ g.dims }}</span>
+              <span style="font:400 15px/1 'Barlow',sans-serif;color:{{ T.muted }}">{{ g.price }}</span>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:-6px">
+          <h2 style="margin:0;font:600 22px/1.1 'Barlow Condensed',sans-serif">Slabs</h2>
+          <span style="font:400 14px/1 'Barlow',sans-serif;color:{{ T.muted }}">Tap a part to identify it</span>
+        </div>
+
+        <sc-for list="{{ slabs }}" as="s" hint-placeholder-count="2">
+          <div style="position:relative;background:{{ T.card }};border:{{ T.cardBd }};border-radius:{{ T.radius }};padding:12px 12px 4px;display:flex;flex-direction:column;gap:10px">
+            <sc-if value="{{ T.marks }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:-6px;left:-6px;width:11px;height:11px;pointer-events:none;background:{{ T.markBg }}"></span><span style="position:absolute;top:-6px;right:-6px;width:11px;height:11px;pointer-events:none;background:{{ T.markBg }}"></span><span style="position:absolute;bottom:-6px;left:-6px;width:11px;height:11px;pointer-events:none;background:{{ T.markBg }}"></span><span style="position:absolute;bottom:-6px;right:-6px;width:11px;height:11px;pointer-events:none;background:{{ T.markBg }}"></span></sc-if>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="flex:none;width:30px;height:30px;border-radius:{{ T.radius }};background:{{ T.badge }};color:#fff;display:flex;align-items:center;justify-content:center;font:600 18px/1 'Barlow Condensed',sans-serif">{{ s.num }}</span>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+                <span style="font:600 23px/1 'Barlow Condensed',sans-serif;font-variant-numeric:tabular-nums">{{ s.dims }}</span>
+                <span style="font:400 13px/1.2 'Barlow',sans-serif;color:{{ T.muted }}">{{ s.meta }}</span>
+              </div>
+              <span style="flex:none;font:600 16px/1 'Barlow Condensed',sans-serif;padding:6px 8px;border-radius:{{ T.radius }};background:{{ s.progBg }};color:{{ s.progColor }}">{{ s.progress }}</span>
+            </div>
+            <div style="overflow-x:auto;padding:3px;margin:0 -3px">
+              <div style="position:relative;width:{{ s.innerW }};aspect-ratio:{{ s.aspect }};background:{{ T.hatch }};box-shadow:0 0 0 1.5px {{ T.slabBd }}">
+                <sc-for list="{{ s.cells }}" as="c" hint-placeholder-count="3">
+                  <div onClick="{{ c.onTap }}" style="position:absolute;left:{{ c.x }}%;top:{{ c.y }}%;width:{{ c.w }}%;height:{{ c.h }}%;box-sizing:border-box;background:{{ c.fill }};box-shadow:inset 0 0 0 1px {{ T.partBd }};display:flex;align-items:center;justify-content:center;overflow:hidden;white-space:nowrap;font:600 12px/1 'Barlow Condensed',sans-serif;color:{{ c.ink }};cursor:pointer">{{ c.label }}</div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;min-height:44px">
+              <span style="flex:1;min-width:0;font:{{ s.selFont }};color:{{ s.selColor }};text-wrap:pretty">{{ s.selText }}</span>
+              <button onClick="{{ s.onZoom }}" style="flex:none;height:40px;padding:0 12px;border:{{ T.inputBd }};border-radius:{{ T.radius }};background:{{ T.inputBg }};font:500 14px/1 'Barlow',sans-serif;color:{{ T.ink }}">{{ s.zoomLabel }}</button>
+            </div>
+            <div style="display:flex;flex-direction:column;margin:0 -4px">
+              <sc-for list="{{ s.rows }}" as="r" hint-placeholder-count="3">
+                <div style="display:flex;align-items:center;min-height:52px;border-top:1px solid {{ T.rule }};background:{{ r.bg }}">
+                  <button onClick="{{ r.onCheck }}" aria-label="Mark as cut" style="flex:none;width:48px;height:52px;display:flex;align-items:center;justify-content:center;border:0;background:transparent;padding:0">
+                    <span style="width:26px;height:26px;box-sizing:border-box;border:{{ T.checkBd }};border-radius:{{ T.radiusSm }};background:{{ r.boxBg }};color:#fff;display:flex;align-items:center;justify-content:center;font:700 16px/1 'Barlow',sans-serif">{{ r.tick }}</span>
+                  </button>
+                  <div onClick="{{ r.onSelect }}" style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;padding:7px 8px 7px 0;cursor:pointer">
+                    <div style="display:flex;align-items:baseline;gap:6px">
+                      <span style="font:600 15px/1 'Barlow Condensed',sans-serif;color:{{ T.accentInk }};min-width:14px">{{ r.num }}</span>
+                      <span style="font:500 16px/1.2 'Barlow',sans-serif;color:{{ r.color }};text-decoration:{{ r.deco }};overflow-wrap:anywhere">{{ r.name }}</span>
+                    </div>
+                    <span style="font:400 13px/1.2 'Barlow',sans-serif;color:{{ T.muted }};padding-left:20px">{{ r.dims }}</span>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-for>
+      </sc-if>
+    </div>
+    <div style="flex:none;padding:10px 18px;background:{{ T.dock }};border-top:{{ T.dockBd }}">
+      <button onClick="{{ goStock }}" style="width:100%;height:52px;border:{{ T.inputBd }};border-radius:{{ T.radius }};background:{{ T.inputBg }};font:600 20px/1 'Barlow Condensed',sans-serif;color:{{ T.ink }}">‹ Adjust stock</button>
+    </div>
+  </sc-if>
+</div>
+</sc-if>
+
+<div style="flex:none;display:flex;background:{{ T.dock }};border-top:1px solid {{ T.rule }};padding-bottom:22px">
+  <sc-for list="{{ tabs }}" as="tb" hint-placeholder-count="2">
+    <button onClick="{{ tb.onTap }}" style="flex:1;height:54px;display:flex;align-items:center;justify-content:center;gap:8px;border:0;border-top:3px solid {{ tb.bar }};background:transparent;font:{{ tb.font }};color:{{ tb.color }}">
+      <span>{{ tb.label }}</span>
+      <sc-if value="{{ tb.hasBadge }}" hint-placeholder-val="{{ false }}">
+        <span style="min-width:20px;height:20px;padding:0 5px;box-sizing:border-box;border-radius:10px;background:{{ tb.badgeBg }};color:#fff;display:flex;align-items:center;justify-content:center;font:700 12px/1 'Barlow',sans-serif">{{ tb.badge }}</span>
+      </sc-if>
+    </button>
+  </sc-for>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:797},&quot;direction&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;blueprint&quot;,&quot;sunlight&quot;,&quot;plate&quot;],&quot;default&quot;:&quot;blueprint&quot;,&quot;tsType&quot;:&quot;'blueprint'|'sunlight'|'plate'&quot;},&quot;scenario&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;full&quot;,&quot;empty&quot;,&quot;warning&quot;],&quot;default&quot;:&quot;full&quot;,&quot;tsType&quot;:&quot;'full'|'empty'|'warning'&quot;},&quot;screen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;stock&quot;,&quot;plan&quot;],&quot;default&quot;:&quot;stock&quot;,&quot;tsType&quot;:&quot;'stock'|'plan'&quot;}}">
+const PARTS = [
+  ['Tischplatte_hinten', 100, 255, 2276, 1],
+  ['Tischplatte_vorn', 100, 215, 2232, 1],
+  ['Bankhakenleiste', 40, 100, 2254, 1],
+  ['Leg', 90, 130, 725, 4],
+  ['Stretcher_long_front', 80, 110, 1140, 1],
+  ['Stretcher_long_back', 45, 110, 1200, 1],
+  ['Stretcher_short', 45, 110, 470, 2],
+  ['Stretcher_short', 45, 90, 470, 2],
+  ['Leg_Vise_Body', 45, 247, 755, 1]
+].map(([name, t, w, l, n]) => ({ name, t, w, l, n }));
+
+const SCEN = {
+  full: [
+    { t: 100, w: 260, l: 2400, count: 2, price: 310, unit: 'pc' },
+    { t: 90, w: 300, l: 3000, count: 1, price: 2400, unit: 'm3' },
+    { t: 50, w: 280, l: 2500, count: null, price: 2100, unit: 'm3' }
+  ],
+  warning: [
+    { t: 90, w: 300, l: 3000, count: 1, price: 2400, unit: 'm3' },
+    { t: 50, w: 280, l: 2500, count: null, price: 2100, unit: 'm3' },
+    { t: 50, w: 240, l: 1500, count: 3, price: null, unit: 'pc' }
+  ],
+  empty: []
+};
+
+const mk = (c, w) => `linear-gradient(${c},${c}) ${(11 - w) / 2}px 0/${w}px 100% no-repeat, linear-gradient(${c},${c}) 0 ${(11 - w) / 2}px/100% ${w}px no-repeat`;
+const hatch = (a, b) => `repeating-linear-gradient(135deg,${a} 0 1px,${b} 1px 6px)`;
+const THEMES = {
+  blueprint: {
+    bg: '#f2f2f3', ink: '#1d1f20', muted: '#5d5d60', faint: '#98989b', rule: 'rgba(29,31,32,.12)',
+    bw: '1px', line: 'rgba(29,31,32,.22)', card: 'transparent', rowBg: '#f2f2f3', radius: '0px', radiusSm: '0px',
+    marks: true, markBg: mk('rgba(29,31,32,.55)', 1),
+    inputBg: '#e9e9ea', inputBd: '1px solid rgba(29,31,32,.22)', focus: '#5980a6', countBd: 'rgba(29,31,32,.22)',
+    accent: '#5980a6', accentInk: '#416180', cta: '#5980a6', ctaInk: '#f2f2f3',
+    add: 'transparent', addInk: '#416180', addBd: '1px solid #5980a6',
+    sumBg: 'transparent', sumBd: '1px solid rgba(29,31,32,.22)', sumInk: '#1d1f20', sumMuted: '#5d5d60', sumNum: '#416180', sumRule: 'rgba(29,31,32,.12)',
+    part: '#d6ebff', partBd: '#416180', partSel: '#5980a6', partDone: '#e7e7ea', hatch: hatch('#b7b7ba', '#f2f2f3'), slabBd: '#416180',
+    tint: '#eef6ff', flash: '#d6ebff', badge: '#416180', checkBd: '1.5px solid #416180', check: '#416180',
+    warn: '#a5432f', warnBd: '1px solid #a5432f', warnBg: 'transparent', warnInk: '#86321f', warnRule: 'rgba(165,67,47,.25)',
+    dock: '#f2f2f3', dockBd: '1px solid rgba(29,31,32,.22)', dims: '23px', tabOn: '#416180'
+  },
+  sunlight: {
+    bg: '#f5f5f8', ink: '#1d1f20', muted: '#424244', faint: '#7a7a7d', rule: '#d4d4d7',
+    bw: '2px', line: '#1d1f20', card: '#ffffff', rowBg: '#ffffff', radius: '0px', radiusSm: '0px',
+    marks: true, markBg: mk('#1d1f20', 2),
+    inputBg: '#ffffff', inputBd: '2px solid #1d1f20', focus: '#416180', countBd: '#1d1f20',
+    accent: '#416180', accentInk: '#2c455d', cta: '#1d2d3d', ctaInk: '#ffffff',
+    add: '#416180', addInk: '#ffffff', addBd: '2px solid #416180',
+    sumBg: '#1d2d3d', sumBd: '2px solid #1d2d3d', sumInk: '#f5f5f8', sumMuted: '#b5d9fd', sumNum: '#ffffff', sumRule: '#416180',
+    part: '#b5d9fd', partBd: '#1d1f20', partSel: '#1d2d3d', partDone: '#d4d4d7', hatch: hatch('#7a7a7d', '#f5f5f8'), slabBd: '#1d1f20',
+    tint: '#d6ebff', flash: '#b5d9fd', badge: '#1d2d3d', checkBd: '2px solid #1d1f20', check: '#1d2d3d',
+    warn: '#8a3424', warnBd: '3px solid #8a3424', warnBg: '#fbeeea', warnInk: '#6e2516', warnRule: '#e9c2b8',
+    dock: '#ffffff', dockBd: '2px solid #1d1f20', dims: '26px', tabOn: '#1d1f20'
+  },
+  plate: {
+    bg: '#f2f2f3', ink: '#1d1f20', muted: '#5d5d60', faint: '#98989b', rule: '#d6ebff',
+    bw: '1px', line: '#b5d9fd', card: '#eef6ff', rowBg: '#eef6ff', radius: '4px', radiusSm: '3px',
+    marks: false, markBg: 'none',
+    inputBg: '#ffffff', inputBd: '1px solid #94bce3', focus: '#416180', countBd: '#94bce3',
+    accent: '#597ea3', accentInk: '#2c455d', cta: '#2c455d', ctaInk: '#ffffff',
+    add: '#d6ebff', addInk: '#1d2d3d', addBd: '1px solid #94bce3',
+    sumBg: '#416180', sumBd: '1px solid #416180', sumInk: '#ffffff', sumMuted: '#d6ebff', sumNum: '#ffffff', sumRule: '#749dc4',
+    part: '#ffffff', partBd: '#416180', partSel: '#2c455d', partDone: '#d6ebff', hatch: hatch('#94bce3', '#eef6ff'), slabBd: '#2c455d',
+    tint: '#d6ebff', flash: '#b5d9fd', badge: '#2c455d', checkBd: '1.5px solid #416180', check: '#2c455d',
+    warn: '#a5432f', warnBd: '1.5px solid #a5432f', warnBg: '#fbeeea', warnInk: '#7a2c1e', warnRule: '#efcdc4',
+    dock: '#eef6ff', dockBd: '1px solid #b5d9fd', dims: '24px', tabOn: '#2c455d'
+  }
+};
+Object.values(THEMES).forEach(t => { t.cardBd = `${t.bw} solid ${t.line}`; });
+
+let SEQ = 1;
+const fmt = n => Math.round(n).toLocaleString('en-US');
+const eur = n => '€' + fmt(n);
+const m3 = v => (v / 1e9).toFixed(3);
+const vol = s => s.t * s.w * s.l;
+const unitPrice = s => (s.price == null ? null : s.unit === 'pc' ? s.price : s.price * vol(s) / 1e9);
+const X = ' × ';
+
+function tryPlace(sl, p, k) {
+  const fits = sl.strips.filter(st => st.w >= p.cw && st.used + k + p.cl <= sl.l).sort((a, b) => a.w - b.w);
+  if (fits.length) {
+    const st = fits[0], x = st.used + k;
+    st.used = x + p.cl;
+    sl.parts.push({ p, x, y: st.y });
+    return true;
+  }
+  const y = sl.strips.length ? sl.usedW + k : 0;
+  if (y + p.cw <= sl.w && p.cl <= sl.l) {
+    sl.strips.push({ y, w: p.cw, used: p.cl });
+    sl.usedW = y + p.cw;
+    sl.parts.push({ p, x: 0, y });
+    return true;
+  }
+  return false;
+}
+
+function makePlan(stock, set) {
+  const k = set.kerf, inst = [];
+  let uid = 0;
+  PARTS.forEach(p => {
+    for (let i = 0; i < p.n; i++) inst.push({ uid: 'p' + uid++, name: p.name, copy: p.n > 1 ? `${i + 1}/${p.n}` : '', t: p.t, w: p.w, l: p.l, cw: p.w + set.exW, cl: p.l + set.exL });
+  });
+  inst.sort((a, b) => b.t - a.t || b.cw - a.cw || b.cl - a.cl);
+  const left = stock.map(s => (s.count == null ? Infinity : s.count));
+  const slabs = [], unplaced = [];
+  for (const p of inst) {
+    const open = slabs.filter(sl => sl.t >= p.t && sl.t - p.t <= 20).sort((a, b) => a.t - b.t);
+    if (open.some(sl => tryPlace(sl, p, k))) continue;
+    const opts = stock.map((s, i) => ({ s, i })).filter(o => left[o.i] > 0 && o.s.t >= p.t && o.s.w >= p.cw && o.s.l >= p.cl)
+      .sort((a, b) => a.s.t - b.s.t || a.s.w * a.s.l - b.s.w * b.s.l);
+    if (!opts.length) {
+      let reason;
+      const thick = stock.filter(s => s.t >= p.t);
+      if (!stock.length) reason = 'No stock entered';
+      else if (!thick.length) reason = `No stock ${p.t} mm or thicker`;
+      else if (!thick.some(s => s.w >= p.cw)) reason = `Thick enough stock is too narrow (needs ${p.cw} mm)`;
+      else if (!thick.some(s => s.w >= p.cw && s.l >= p.cl)) reason = `Wide enough stock is too short (needs ${p.cl} mm)`;
+      else reason = 'Matching stock is used up – need more pieces';
+      unplaced.push({ ...p, reason });
+      continue;
+    }
+    const o = opts[0];
+    left[o.i]--;
+    const sl = { stockIdx: o.i, t: o.s.t, w: o.s.w, l: o.s.l, price: unitPrice(o.s), strips: [], usedW: 0, parts: [] };
+    slabs.push(sl);
+    tryPlace(sl, p, k);
+  }
+  slabs.sort((a, b) => a.stockIdx - b.stockIdx);
+  slabs.forEach(sl => sl.parts.sort((a, b) => a.y - b.y || a.x - b.x));
+  return { slabs, unplaced };
+}
+
+class Component extends DCLogic {
+  state = {
+    tab: 'stock', stock: [], partsOpen: false, settingsOpen: false,
+    settings: { kerf: 4, exL: 20, exW: 5 },
+    f: { t: '', w: '', l: '', count: 1, price: '', unit: 'pc' },
+    focus: null, editId: null, swipe: { id: null, dx: 0 }, openId: null, flashId: null,
+    plan: null, planVer: -1, ver: 0, sel: null, zoom: {}, done: {}
+  };
+  scrollRef = React.createRef();
+  refs3 = { t: React.createRef(), w: React.createRef(), l: React.createRef() };
+
+  componentDidMount() {
+    const stock = (SCEN[this.props.scenario || 'full'] || []).map(s => ({ ...s, id: SEQ++ }));
+    const f = { ...this.state.f, t: stock.length ? String(stock[stock.length - 1].t) : '' };
+    this.setState({ stock, f }, () => { if (this.props.screen === 'plan') this.calculate(); });
+  }
+  componentWillUnmount() { clearTimeout(this.flashT); }
+
+  calculate = () => {
+    if (!this.state.stock.length) return;
+    this.setState(s => ({ plan: makePlan(s.stock, s.settings), planVer: s.ver, tab: 'plan', sel: null, done: {}, zoom: {} }));
+  };
+  setF = patch => this.setState(s => ({ f: { ...s.f, ...patch } }));
+  focus = key => setTimeout(() => this.refs3[key].current && this.refs3[key].current.focus(), 0);
+
+  submit = () => {
+    const { f, editId } = this.state;
+    const t = +f.t, w = +f.w, l = +f.l;
+    if (!(t > 0 && w > 0 && l > 0)) return;
+    const price = f.price === '' ? null : parseFloat(String(f.price).replace(',', '.'));
+    const entry = { t, w, l, count: f.count, price: isNaN(price) ? null : price, unit: f.unit };
+    let stock = this.state.stock.slice(), flashId;
+    if (editId != null) {
+      stock = stock.map(s => (s.id === editId ? { ...s, ...entry } : s));
+      flashId = editId;
+    } else {
+      const dup = stock.find(s => s.t === t && s.w === w && s.l === l);
+      if (dup) {
+        stock = stock.map(s => (s === dup ? { ...s, count: s.count == null || entry.count == null ? null : s.count + entry.count, price: entry.price ?? s.price, unit: entry.price != null ? entry.unit : s.unit } : s));
+        flashId = dup.id;
+      } else {
+        flashId = SEQ++;
+        stock.push({ ...entry, id: flashId });
+      }
+    }
+    this.setState(s => ({ stock, editId: null, openId: null, flashId, ver: s.ver + 1, f: { t: String(t), w: '', l: '', count: 1, price: '', unit: f.unit } }), () => {
+      const el = this.scrollRef.current;
+      if (el && editId == null) el.scrollTop = el.scrollHeight;
+      if (editId == null) this.focus('w');
+    });
+    clearTimeout(this.flashT);
+    this.flashT = setTimeout(() => this.setState({ flashId: null }), 1400);
+  };
+
+  startEdit(id) {
+    const s = this.state.stock.find(x => x.id === id);
+    if (!s) return;
+    this.setState({ editId: id, openId: null, f: { t: String(s.t), w: String(s.w), l: String(s.l), count: s.count, price: s.price == null ? '' : String(s.price), unit: s.unit } });
+  }
+  cancelEdit = () => this.setState(s => ({ editId: null, f: { ...s.f, w: '', l: '', count: 1, price: '' } }));
+  del(id) {
+    this.setState(s => ({ stock: s.stock.filter(x => x.id !== id), openId: null, ver: s.ver + 1, editId: s.editId === id ? null : s.editId }));
+  }
+
+  rowDown(id, e) {
+    this.drag = { id, x0: e.clientX, moved: false, base: this.state.openId === id ? -88 : 0 };
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {}
+  }
+  rowMove(id, e) {
+    const d = this.drag;
+    if (!d || d.id !== id) return;
+    const dx = e.clientX - d.x0;
+    if (!d.moved && Math.abs(dx) < 8) return;
+    d.moved = true;
+    this.setState({ swipe: { id, dx: Math.min(0, Math.max(-130, d.base + dx)) } });
+  }
+  rowUp(id) {
+    const d = this.drag;
+    this.drag = null;
+    if (!d) return;
+    if (!d.moved) {
+      if (this.state.openId != null) this.setState({ openId: null });
+      else this.startEdit(id);
+      return;
+    }
+    this.setState(s => ({ openId: s.swipe.dx < -44 ? id : null, swipe: { id: null, dx: 0 } }));
+  }
+
+  renderVals() {
+    const T = THEMES[this.props.direction] || THEMES.plate;
+    const S = this.state, f = S.f, set = S.settings;
+    const totalParts = PARTS.reduce((a, p) => a + p.n, 0);
+    const thick = [...new Set(PARTS.map(p => p.t))].sort((a, b) => b - a);
+    const editing = S.editId != null;
+    const canAdd = +f.t > 0 && +f.w > 0 && +f.l > 0;
+    const noStock = S.stock.length === 0;
+
+    const stockRows = S.stock.map(s => {
+      const up = unitPrice(s);
+      const price = s.price == null ? 'no price' : s.unit === 'pc' ? `${eur(s.price)} / piece` : `${eur(s.price)} / m³ · ${eur(up)} / piece`;
+      const dragging = S.swipe.id === s.id;
+      const dx = dragging ? S.swipe.dx : S.openId === s.id ? -88 : 0;
+      return {
+        id: s.id, t: s.t, w: s.w, l: s.l, dx,
+        sub: `${m3(vol(s))} m³ · ${price}`,
+        count: s.count == null ? '∞' : '×' + s.count,
+        trans: dragging ? 'none' : 'transform .2s ease, background .4s',
+        bg: S.flashId === s.id ? T.flash : T.rowBg,
+        border: S.editId === s.id ? T.focus : T.line,
+        delOp: dx < 0 ? 1 : 0,
+        onDown: e => this.rowDown(s.id, e), onMove: e => this.rowMove(s.id, e), onUp: () => this.rowUp(s.id),
+        onCancel: () => { this.drag = null; this.setState({ swipe: { id: null, dx: 0 } }); },
+        onDelete: () => this.del(s.id)
+      };
+    });
+
+    const order = ['t', 'w', 'l'];
+    const dimFields = order.map((key, i) => ({
+      key, ref: this.refs3[key], value: f[key],
+      label: { t: 'Thick', w: 'Width', l: 'Length' }[key], ph: 'mm',
+      enter: key === 'l' ? 'done' : 'next',
+      border: S.focus === key ? T.focus : T.line,
+      ring: S.focus === key ? `0 0 0 2px ${T.focus}` : 'none',
+      onFocus: e => { this.setState({ focus: key }); try { e.target.select(); } catch (_) {} },
+      onBlur: () => this.setState(s => (s.focus === key ? { focus: null } : null)),
+      onChange: e => this.setF({ [key]: e.target.value.replace(/[^0-9]/g, '').slice(0, 5) }),
+      onKey: e => { if (e.key === 'Enter') { e.preventDefault(); if (i < 2) this.focus(order[i + 1]); else this.submit(); } }
+    }));
+
+    const settingFields = [['kerf', 'Saw kerf'], ['exL', 'Extra length'], ['exW', 'Extra width']].map(([key, label]) => ({
+      label, value: String(set[key]),
+      onChange: e => { const v = parseInt(e.target.value.replace(/[^0-9]/g, ''), 10) || 0; this.setState(s => ({ settings: { ...s.settings, [key]: v }, ver: s.ver + 1 })); }
+    }));
+
+    const P = S.plan;
+    let plan = { hasPlan: false, noPlan: true };
+    if (P) {
+      const slabVol = P.slabs.reduce((a, sl) => a + vol(sl), 0);
+      const partVol = P.slabs.reduce((a, sl) => a + sl.parts.reduce((b, pp) => b + vol(pp.p), 0), 0);
+      const priced = P.slabs.filter(sl => sl.price != null);
+      const unpricedN = P.slabs.length - priced.length;
+      const groups = {};
+      P.slabs.forEach(sl => { (groups[sl.stockIdx] = groups[sl.stockIdx] || []).push(sl); });
+      const shopping = Object.values(groups).map(g => ({
+        n: g.length + ' ×', dims: [g[0].t, g[0].w, g[0].l].join(X),
+        price: g[0].price == null ? 'no price' : eur(g[0].price * g.length)
+      }));
+      const ug = {};
+      P.unplaced.forEach(p => { const key = [p.name, p.t, p.cw, p.cl].join('|'); (ug[key] = ug[key] || { p, n: 0 }).n++; });
+      const unplaced = Object.values(ug).map(({ p, n }) => ({ name: p.name, n: '×' + n, need: `≥ ${p.t}${X}${p.cw}${X}${p.cl}`, reason: p.reason }));
+      const slabs = P.slabs.map((sl, si) => {
+        const z = !!S.zoom[si];
+        const doneN = sl.parts.filter(pp => S.done[pp.p.uid]).length;
+        const sv = vol(sl), pv = sl.parts.reduce((b, pp) => b + vol(pp.p), 0);
+        let selText = 'Tap a part in the drawing', selFont = "400 14px/1.3 'Barlow',sans-serif", selColor = T.muted;
+        const cells = sl.parts.map((pp, i) => {
+          const p = pp.p, isSel = S.sel && S.sel.uid === p.uid, isDone = S.done[p.uid];
+          if (isSel) {
+            selText = `${i + 1} · ${p.name}${p.copy ? ' ' + p.copy : ''} — ${p.t}${X}${p.w}${X}${p.l} · at ${fmt(pp.x)} along, ${fmt(pp.y)} across`;
+            selFont = "500 14px/1.3 'Barlow',sans-serif"; selColor = T.ink;
+          }
+          return {
+            x: pp.x / sl.l * 100, y: pp.y / sl.w * 100, w: p.cl / sl.l * 100, h: p.cw / sl.w * 100,
+            fill: isSel ? T.partSel : isDone ? T.partDone : T.part,
+            ink: isSel ? '#ffffff' : isDone ? T.faint : T.ink,
+            label: z ? `${i + 1}  ${p.name}` : String(i + 1),
+            onTap: () => this.setState(s => ({ sel: s.sel && s.sel.uid === p.uid ? null : { uid: p.uid } }))
+          };
+        });
+        const rows = sl.parts.map((pp, i) => {
+          const p = pp.p, isDone = !!S.done[p.uid], isSel = S.sel && S.sel.uid === p.uid;
+          return {
+            num: i + 1, name: p.name + (p.copy ? ' ' + p.copy : ''),
+            dims: `${p.t}${X}${p.w}${X}${p.l} · cut ${p.cw}${X}${p.cl}${sl.t > p.t ? ` · plane ${sl.t}→${p.t}` : ''}`,
+            tick: isDone ? '✓' : '', boxBg: isDone ? T.check : T.inputBg,
+            color: isDone ? T.faint : T.ink, deco: isDone ? 'line-through' : 'none',
+            bg: isSel ? T.tint : 'transparent',
+            onCheck: () => this.setState(s => ({ done: { ...s.done, [p.uid]: !s.done[p.uid] } })),
+            onSelect: () => this.setState(s => ({ sel: s.sel && s.sel.uid === p.uid ? null : { uid: p.uid } }))
+          };
+        });
+        const all = doneN === sl.parts.length;
+        return {
+          num: si + 1, dims: [sl.t, sl.w, sl.l].join(X),
+          meta: `${m3(sv)} m³ · ${Math.round((1 - pv / sv) * 100)}% waste${sl.price != null ? ' · ' + eur(sl.price) : ''}`,
+          progress: `${doneN}/${sl.parts.length} cut`, progBg: all ? T.check : T.tint, progColor: all ? '#ffffff' : T.accentInk,
+          innerW: z ? '340%' : '100%', aspect: `${sl.l} / ${sl.w}`,
+          zoomLabel: z ? 'Fit' : 'Zoom', onZoom: () => this.setState(s => ({ zoom: { ...s.zoom, [si]: !s.zoom[si] } })),
+          cells, rows, selText, selFont, selColor
+        };
+      });
+      const n = P.slabs.length, un = P.unplaced.length;
+      plan = {
+        hasPlan: true, noPlan: false, stale: S.planVer !== S.ver,
+        buyTitle: `Buy ${n} slab${n === 1 ? '' : 's'}`,
+        volLabel: `${m3(slabVol)} m³`,
+        wasteLabel: slabVol ? `${Math.round((1 - partVol / slabVol) * 100)} %` : '—',
+        hasTotal: priced.length > 0, totalLabel: eur(priced.reduce((a, sl) => a + sl.price, 0)),
+        hasUnpriced: priced.length > 0 && unpricedN > 0, unpricedLabel: `Total excludes ${unpricedN} slab${unpricedN === 1 ? '' : 's'} without a price`,
+        hasUnplaced: un > 0, unplacedTitle: `${un} part${un === 1 ? '' : 's'} can't be cut from the stock entered`, unplaced,
+        hasSlabs: n > 0, shopping, slabs
+      };
+    }
+
+    const tab = S.tab;
+    const warnN = P ? P.unplaced.length : 0;
+    const tabs = [['stock', 'Stock'], ['plan', 'Plan']].map(([key, label]) => ({
+      label, onTap: () => this.setState({ tab: key }),
+      bar: tab === key ? T.tabOn : 'transparent',
+      color: tab === key ? T.tabOn : T.muted,
+      font: tab === key ? "600 19px/1 'Barlow Condensed',sans-serif" : "400 19px/1 'Barlow Condensed',sans-serif",
+      hasBadge: key === 'plan' && !!P && (warnN > 0 || S.planVer !== S.ver),
+      badge: warnN > 0 ? '!' : '•', badgeBg: warnN > 0 ? T.warn : T.accent
+    }));
+
+    return {
+      T, isStock: tab === 'stock', isPlan: tab === 'plan', tabs,
+      scrollRef: this.scrollRef,
+      partsSummary: `${totalParts} parts · ${thick.length} thicknesses`,
+      partsOpen: S.partsOpen, partsToggleLabel: S.partsOpen ? 'Hide ▴' : 'Show list ▾',
+      toggleParts: () => this.setState(s => ({ partsOpen: !s.partsOpen })),
+      partRows: PARTS.map(p => ({ name: p.name, dims: [p.t, p.w, p.l].join(X), n: '×' + p.n })),
+      thickChips: thick.map(t => t + ' mm'),
+      hasStock: !noStock, noStock,
+      stockCountLabel: noStock ? '' : `${S.stock.length} size${S.stock.length === 1 ? '' : 's'}`,
+      stockRows,
+      settingsOpen: S.settingsOpen, toggleSettings: () => this.setState(s => ({ settingsOpen: !s.settingsOpen })),
+      settingsSummary: `kerf ${set.kerf} · +${set.exL} L · +${set.exW} W ${S.settingsOpen ? '▴' : '▾'}`,
+      settingFields,
+      editing, dockTitle: editing ? 'Edit stock entry' : 'Add stock · mm', cancelEdit: this.cancelEdit,
+      dimFields,
+      countLabel: f.count == null ? '∞' : String(f.count),
+      dec: () => this.setF({ count: f.count == null ? 1 : Math.max(1, f.count - 1) }),
+      inc: () => this.setF({ count: f.count == null ? 1 : f.count + 1 }),
+      toggleInf: () => this.setF({ count: f.count == null ? 1 : null }),
+      infBg: f.count == null ? T.check : 'transparent', infColor: f.count == null ? '#ffffff' : T.ink,
+      fPrice: f.price, onPrice: e => this.setF({ price: e.target.value.replace(/[^0-9.,]/g, '').slice(0, 7) }),
+      onPriceKey: e => { if (e.key === 'Enter') { e.preventDefault(); this.submit(); } },
+      unitLabel: f.unit === 'pc' ? '/ pc' : '/ m³', toggleUnit: () => this.setF({ unit: f.unit === 'pc' ? 'm3' : 'pc' }),
+      submit: this.submit, cantAdd: !canAdd, addLabel: editing ? 'Save' : 'Add', addOp: canAdd ? 1 : 0.45,
+      calculate: this.calculate, ctaOp: noStock ? 0.45 : 1,
+      goStock: () => this.setState({ tab: 'stock' }),
+      ...plan
+    };
+  }
+}
+</script>
+</body>
+</html>

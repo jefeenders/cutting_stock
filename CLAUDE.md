@@ -42,6 +42,9 @@ each one.
 - Keep it small: few files, no frameworks, no dependencies unless they clearly earn their place.
 - Core packing logic lives in one plain JS module with an assert-based self-check runnable in Node.
 - Checks: `node check.js && node view.check.js && node pwa.check.js` must pass before every commit.
+  Optional browser check (needs Chrome): `node test.run.mjs` runs `test.html` headless at 390×844 (Plan
+  screen read back from the live DOM, drawing to scale with the real CSS). `test.html` is not part of the
+  app: not linked, not in `FILES`.
 - Service worker: bump `VERSION` in `sw.js` whenever an app file changes, and list new app files in `FILES`
   (`pwa.check.js` enforces the list). Phones pick up a deploy on the second visit after it.
   `pwa.check.js` also fails if a precached file differs from HEAD while `VERSION` equals HEAD's; the

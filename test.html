@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RUNNING</title>
+<!-- Browser check for the Plan screen (not part of the app, not precached). Open it from a local
+     server, or run: node test.run.mjs. view.check.js covers the HTML string in Node; this page covers
+     what only a real browser shows: the live DOM read back as a plan, the drawing to scale with the
+     real stylesheet, and the screen text. Renders from pure state, never touches the app's storage. -->
+<link rel="stylesheet" href="style.css">
+<style>
+  html, body { height: auto; overflow: auto; }
+  #app { height: 100vh; }
+  #out { margin: 0; padding: 12px 18px; font: 14px/1.4 ui-monospace, monospace; white-space: pre-wrap; }
+  #out .fail { color: #b00020; }
+</style>
+</head>
+<body>
+<pre id="out">Running…</pre>
+<div id="app"></div>
+<script type="module">
+import { render, initialState } from './view.js';
+import { makePlan, EXAMPLE_PARTS, EXAMPLE_STOCK, EXAMPLE_STOCK_WARNING } from './cutting-plan.js';
+import { checkPlan } from './check.js';
+
+const app = document.getElementById('app'), out = document.getElementById('out');
+const results = [];
+const check = (name, fn) => {
+  try { const err = fn(); results.push({ name, err: err || null }); }
+  catch (e) { results.push({ name, err: e.message }); }
+};
+const same = (a, b, what) => (JSON.stringify(a) === JSON.stringify(b) ? null : `${what}: got ${JSON.stringify(a)}, want ${JSON.stringify(b)}`);
+const text = sel => app.querySelector(sel)?.textContent.replace(/\s+/g, ' ').trim() ?? null;
+const texts = sel => [...app.querySelectorAll(sel)].map(e => e.innerText.replace(/\s+/g, ' ').trim());
+
+const base = { ...initialState(), project: 'Workbench', parts: EXAMPLE_PARTS, tab: 'plan' };
+const planned = stock => ({ ...base, stock, plan: makePlan(EXAMPLE_PARTS, stock, base.settings) });
+const full = planned(EXAMPLE_STOCK), warn = planned(EXAMPLE_STOCK_WARNING);
+const SCENARIOS = {
+  full: { st: full, buy: 'Buy 5 slabs', waste: '34 %', badge: null, stale: false, unplaced: [],
+    shop: ['2 × 100 × 260 × 2400 €620', '1 × 90 × 300 × 3000 €194', '2 × 50 × 280 × 2500 €147'] },
+  warning: { st: warn, buy: 'Buy 4 slabs', waste: null, badge: '!', stale: false,
+    shop: ['1 × 90 × 300 × 3000 €194', '2 × 50 × 280 × 2500 €147', '1 × 50 × 240 × 1500 no price'],
+    unplaced: ['Tischplatte_hinten ×1 ≥ 100 × 260 × 2296 No stock 100 mm or thicker',
+      'Tischplatte_vorn ×1 ≥ 100 × 220 × 2252 No stock 100 mm or thicker'] },
+  stale: { st: { ...full, version: 1 }, buy: 'Buy 5 slabs', waste: '34 %', badge: '•', stale: true, unplaced: [],
+    shop: ['2 × 100 × 260 × 2400 €620', '1 × 90 × 300 × 3000 €194', '2 × 50 × 280 × 2500 €147'] },
+  'nothing fits': { st: planned([{ id: 1, t: 10, w: 10, l: 10, count: 1, price: null, unit: 'pc' }]),
+    buy: 'Buy 0 slabs', waste: '—', badge: '!', stale: false, shop: [], unplaced: null }
+};
+
+// The live drawing read back as a plan: slab i is the svg in #draw-i, its viewBox the slab in mm,
+// each rect[data-uid] a part at x, y with cut length (width) and cut width (height).
+function readPlan(plan) {
+  const byUid = Object.fromEntries(plan.slabs.flatMap(sl => sl.parts.map(pp => [pp.p.uid, pp.p])));
+  return [...app.querySelectorAll('.draw svg')].map(svg => ({
+    id: svg.closest('.hscroll').id, l: svg.viewBox.baseVal.width, w: svg.viewBox.baseVal.height,
+    parts: [...svg.querySelectorAll('rect[data-uid]')].map(r => ({
+      uid: r.dataset.uid, x: r.x.baseVal.value, y: r.y.baseVal.value,
+      cl: r.width.baseVal.value, cw: r.height.baseVal.value, p: byUid[r.dataset.uid]
+    }))
+  }));
+}
+const brief = slabs => slabs.map(sl => ({ l: sl.l, w: sl.w, parts: sl.parts.map(pp => [pp.p.uid, pp.x, pp.y, pp.p.cl, pp.p.cw]) }));
+
+// On screen to scale: every rect's box, relative to its svg's box, is the part's share of the slab
+// (within 1 px), and the svg is shaped like the slab.
+function geometry(drawn) {
+  const bad = [];
+  app.querySelectorAll('.draw svg').forEach((svg, i) => {
+    const b = svg.getBoundingClientRect(), { l, w, parts } = drawn[i];
+    if (Math.abs(b.height - b.width * w / l) > 1) bad.push(`slab ${i + 1}: svg ${b.width.toFixed(1)}×${b.height.toFixed(1)} px, slab ${l}×${w}`);
+    svg.querySelectorAll('rect[data-uid]').forEach((r, j) => {
+      const rb = r.getBoundingClientRect(), pp = parts[j];
+      const off = [[rb.x - b.x, pp.x / l * b.width], [rb.y - b.y, pp.y / w * b.height],
+        [rb.width, pp.cl / l * b.width], [rb.height, pp.cw / w * b.height]].map(([got, want]) => Math.abs(got - want));
+      if (off.some(d => d > 1)) bad.push(`slab ${i + 1} ${pp.uid}: off by ${off.map(d => d.toFixed(1)).join('/')} px`);
+    });
+  });
+  return bad.slice(0, 5).join('; ') || null;
+}
+
+for (const [name, sc] of Object.entries(SCENARIOS)) {
+  const { st } = sc, plan = st.plan;
+  app.innerHTML = render(st);
+  const drawn = readPlan(plan);
+  check(`${name}: drawing reads back as the plan`, () => same(brief(drawn), brief(plan.slabs), 'slabs')
+    || same(drawn.map(d => d.id), plan.slabs.map((_, i) => `draw-${i}`), 'drawing ids'));
+  check(`${name}: plan read back passes checkPlan`, () => {
+    checkPlan(st.parts, st.stock, st.settings, { ...plan, slabs: plan.slabs.map((sl, i) => ({ ...sl, parts: drawn[i].parts.map(({ p, x, y }) => ({ p, x, y })) })) });
+  });
+  check(`${name}: drawing to scale at fit width`, () => geometry(drawn));
+  app.innerHTML = render({ ...st, zoom: Object.fromEntries(plan.slabs.map((_, i) => [i, true])) });
+  check(`${name}: drawing to scale zoomed`, () => geometry(drawn)
+    || [...app.querySelectorAll('.hscroll')].some(h => h.querySelector('svg').getBoundingClientRect().width < 3 * h.clientWidth) && 'zoomed svg not ~340% wide');
+  app.innerHTML = render(st);
+  check(`${name}: screen text`, () => same(text('.buy'), sc.buy, 'slab count')
+    || same(app.querySelectorAll('.slab').length, plan.totals.slabCount, 'slab cards')
+    || (sc.waste && same(text('.stat:nth-child(2) .stat-n'), sc.waste, 'waste'))
+    || same(texts('.shop-row'), sc.shop, 'shopping list')
+    || (sc.unplaced && same(texts('.unplaced-row'), sc.unplaced, 'unplaced rows'))
+    || same(!!app.querySelector('.warn-box'), plan.unplaced.length > 0, 'warning shown')
+    || same(text('[data-tab=plan] .badge'), sc.badge, 'tab badge')
+    || same(text('.stale span'), sc.stale ? 'Stock or settings changed since this plan was made.' : null, 'stale banner'));
+}
+app.innerHTML = render({ ...base, plan: null });
+check('empty: no plan yet', () => same(text('.noplan-title'), 'No plan yet', 'title')
+  || same(app.querySelectorAll('svg').length, 0, 'drawings') || same(text('[data-tab=plan] .badge'), null, 'tab badge'));
+
+const failures = results.filter(r => r.err);
+window.testResult = { pass: failures.length === 0, failures, count: results.length };
+out.innerHTML = `${failures.length ? `FAIL: ${failures.length} of ${results.length}` : `PASS: ${results.length} checks`}\n`
+  + results.map(r => r.err ? `<span class="fail">✗ ${r.name}: ${r.err.replace(/</g, '&lt;')}</span>` : `✓ ${r.name}`).join('\n');
+document.title = failures.length ? 'FAIL' : 'PASS';
+</script>
+</body>
+</html>

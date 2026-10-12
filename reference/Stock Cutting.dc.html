@@ -13,7 +13,7 @@
 <style>body{margin:0;background:#e7e7ea;font-family:'Barlow',system-ui,sans-serif}a{color:#416180}a:hover{color:#2c455d}.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08);scroll-margin-top:16px}.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 14px}.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1d1f20;color:#fff;border-radius:4px;text-decoration:none}.dv-tname{font:600 15px/1.2 'Barlow',sans-serif;color:#1d1f20}.dv-opts{display:flex;flex-wrap:wrap;gap:56px;align-items:flex-start}.dv-opt{flex:none;display:flex;flex-direction:column;gap:14px;scroll-margin-top:16px}.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1d1f20;border-radius:5px;text-decoration:none}.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 13px/1.35 'Barlow',sans-serif;color:rgba(0,0,0,.6);max-width:820px}.dv-olabel b{color:#1d1f20;font-weight:600}.dv-opt:target .dv-oid{background:#5980a6;color:#fff}.dv-next{margin:28px 0 0;font:13px/1.5 'Barlow',sans-serif;color:rgba(0,0,0,.55)}.dv-notes{margin:0 0 28px;max-width:860px;font:14px/1.5 'Barlow',sans-serif;color:#424244}.dv-notes ul{margin:6px 0 0;padding-left:18px}</style>
 </helmet>
 <section class="dv-turn" id="t2">
-  <div class="dv-thd"><a class="dv-tid" href="#t2">2</a><span class="dv-tname">Built out from <a class="dv-oid" href="#1c">1c</a> Steel plate · all four states</span></div>
+  <div class="dv-thd"><a class="dv-tid" href="#t2">2</a><span class="dv-tname">Steel plate · all four states</span></div>
   <div class="dv-notes">Each phone is live. Stock: type T → Enter → W → Enter → L → Enter to add; the thickness stays, focus jumps back to width. Tap a row to edit, swipe left to delete. Plan: tap a part in the drawing or list to highlight it, Zoom to see kerf gaps and names, tick boxes as you cut.</div>
   <div class="dv-opts">
     <div class="dv-opt" id="2a">
@@ -40,51 +40,8 @@
   </div>
   <p class="dv-next">Try next: "make the slab drawings taller" · "add a per-m³ price summary to the shopping list" · "German labels"</p>
 </section>
-<section class="dv-turn" id="t1">
-  <div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Three visual directions on the Industry system · Stock and Plan screens</span></div>
-  <div class="dv-notes">
-    Same layout and behaviour in all three; they differ in how hard they push contrast for outdoor use. Every phone is live: type into the fields, swipe stock rows, calculate, tap parts, tick them off.
-    <ul>
-      <li>Plan phones use stock without a 100 mm slab, so you see the warning block. The Stock phones calculate a full plan.</li>
-      <li>Parts are ripped side by side into strips, then cut to length. Thicker stock is used and planed down (up to 20 mm over when sharing a slab).</li>
-      <li>Industry is single-accent; I added one rust red for the can't-cut warning and delete only.</li>
-      <li>Empty state and the polished warning board follow once you pick a direction.</li>
-    </ul>
-  </div>
-  <div class="dv-opts">
-    <sc-for list="{{ options }}" as="o" hint-placeholder-count="3">
-      <div class="dv-opt" id="{{ o.id }}">
-        <div class="dv-olabel"><a class="dv-oid" href="{{ o.href }}">{{ o.id }}</a><span><b>{{ o.name }}</b> — {{ o.desc }}</span></div>
-        <div style="display:flex;gap:36px;padding:12px">
-          <sc-for list="{{ o.phones }}" as="ph" hint-placeholder-count="2">
-            <div style="display:flex;flex-direction:column;gap:12px">
-              <div style="width:390px;height:844px;border-radius:54px;background:{{ ph.bg }};box-shadow:0 0 0 11px #18191a,0 0 0 12px #3a3b3d,0 24px 60px rgba(0,0,0,.28);overflow:hidden;position:relative;display:flex;flex-direction:column">
-                <div style="height:47px;flex:none;display:grid;grid-template-columns:1fr 126px 1fr;align-items:center;padding:0 26px 0 34px;font:600 16px/1 system-ui,sans-serif;color:#1d1f20">
-                  <span>9:41</span>
-                  <span style="height:34px;border-radius:20px;background:#0c0c0d;margin-top:6px"></span>
-                  <span style="justify-self:end;font-size:13px;letter-spacing:.02em">5G ▮▮▮</span>
-                </div>
-                <div style="flex:1;position:relative;min-height:0">
-                  <dc-import name="StockCuttingApp" direction="{{ ph.direction }}" scenario="{{ ph.scenario }}" screen="{{ ph.screen }}" hint-size="390px,797px" style="position:absolute;inset:0"></dc-import>
-                </div>
-                <div style="position:absolute;left:50%;bottom:8px;width:134px;height:5px;margin-left:-67px;border-radius:3px;background:#0c0c0d;pointer-events:none"></div>
-              </div>
-              <div style="font:500 12px/1 'Barlow',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#5d5d60;padding-left:8px">{{ ph.caption }}</div>
-            </div>
-          </sc-for>
-        </div>
-      </div>
-    </sc-for>
-  </div>
-  <p class="dv-next">Try next: "go with <a class="dv-oid" href="#1b">1b</a>, show the empty state" · "<a class="dv-oid" href="#1a">1a</a> but with the dark summary from <a class="dv-oid" href="#1b">1b</a>" · "bigger drawings on the slab cards"</p>
-</section>
 </x-dc>
 <script type="text/x-dc" data-dc-script>
-const OPTS = [
-  ['1a', 'blueprint', 'Blueprint', 'Industry by the book. Transparent hairline frames with registration marks, steel-blue primary, summary drawn as an outlined plate. Calmest, but the lightest lines in direct sun.', '#f2f2f3'],
-  ['1b', 'sunlight', 'Sunlight', 'Same grammar pushed for outdoor glare: 2 px ink frames on white, heavy marks, deep-steel summary field, larger numerals. Highest contrast.', '#f5f5f8'],
-  ['1c', 'plate', 'Steel plate', 'No marks. Pale steel-tinted fills and a solid steel summary field, slightly rounded. Softer, more app-like, zones read by fill not by line.', '#f2f2f3']
-];
 class Component extends DCLogic {
   renderVals() {
     return {
@@ -93,14 +50,7 @@ class Component extends DCLogic {
         { scenario: 'empty', screen: 'stock', caption: 'Stock · empty state' },
         { scenario: 'full', screen: 'plan', caption: 'Plan · result' },
         { scenario: 'warning', screen: 'plan', caption: 'Plan · warning state' }
-      ],
-      options: OPTS.map(([id, direction, name, desc, bg]) => ({
-        id, href: '#' + id, name, desc,
-        phones: [
-          { direction, bg, scenario: 'full', screen: 'stock', caption: 'Stock · interactive' },
-          { direction, bg, scenario: 'warning', screen: 'plan', caption: 'Plan · with warning' }
-        ]
-      }))
+      ]
     };
   }
 }

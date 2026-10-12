@@ -13,7 +13,7 @@ The task is to **recreate the design in the target repo**. The brief asks for **
 `cutting-plan.js` is the exception: it is the packing algorithm lifted out of the prototype as a dependency-free ES module and can be used directly (or ported).
 
 ## Fidelity
-**High-fidelity.** Colours, type, spacing, borders and copy are final. Recreate them exactly. The chosen visual direction is called "Steel plate" (option 1c / 2a in `reference/Stock Cutting.dc.html`). Ignore the "blueprint" and "sunlight" themes in the reference file; they were rejected alternatives.
+**High-fidelity.** Colours, type, spacing, borders and copy are final. Recreate them exactly. The chosen visual direction is called "Steel plate" (board 2a in `reference/Stock Cutting.dc.html`); it is the only theme in the reference files.
 
 ## Design system
 Built on the **Industry** design system (Barlow Condensed headings over Barlow, a single steel-blue accent with a 100–900 ramp). `reference/industry-styles.css` is its token sheet. You can link it and use the `var(--color-accent-*)` tokens; the hex values below are the same values. The "Steel plate" direction deliberately departs from the strict Industry rules in two places: cards have a pale tinted fill and a 4 px radius, and there are no corner registration marks.
@@ -203,5 +203,5 @@ No images or icons. Glyphs used: ×, ∞, −, +, ✓, ‹, ▾/▴, ↓, ! (all
 ## Files
 - `cutting-plan.js`: packing logic plus example data (`EXAMPLE_PARTS`, `EXAMPLE_STOCK`, `EXAMPLE_STOCK_WARNING`). Usable as is.
 - `reference/StockCuttingApp.dc.html`: the full interactive prototype (template + logic). Theme values are in `THEMES.plate`.
-- `reference/Stock Cutting.dc.html`: the presentation board with all four states (filled, empty, plan, warning) and the rejected directions.
+- `reference/Stock Cutting.dc.html`: the presentation board with all four states (filled, empty, plan, warning).
 - `reference/industry-styles.css`: Industry design-system tokens.

@@ -170,7 +170,6 @@ button:disabled{cursor:not-allowed}
       </sc-if>
 
       <div style="position:relative;background:{{ T.sumBg }};color:{{ T.sumInk }};border:{{ T.sumBd }};border-radius:{{ T.radius }};padding:16px 16px 14px;display:flex;flex-direction:column;gap:14px">
-        <sc-if value="{{ T.marks }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:-6px;left:-6px;width:11px;height:11px;pointer-events:none;background:{{ T.markBg }}"></span><span style="position:absolute;top:-6px;right:-6px;width:11px;height:11px;pointer-events:none;background:{{ T.markBg }}"></span><span style="position:absolute;bottom:-6px;left:-6px;width:11px;height:11px;pointer-events:none;background:{{ T.markBg }}"></span><span style="position:absolute;bottom:-6px;right:-6px;width:11px;height:11px;pointer-events:none;background:{{ T.markBg }}"></span></sc-if>
         <div style="display:flex;flex-direction:column;gap:6px">
           <span style="font:500 11px/1 'Barlow',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:{{ T.sumMuted }}">Workbench · cutting plan</span>
           <span style="font:600 52px/0.95 'Barlow Condensed',sans-serif;letter-spacing:-.02em;color:{{ T.sumNum }}">{{ buyTitle }}</span>
@@ -211,7 +210,6 @@ button:disabled{cursor:not-allowed}
 
       <sc-if value="{{ hasSlabs }}" hint-placeholder-val="{{ true }}">
         <div style="position:relative;background:{{ T.card }};border:{{ T.cardBd }};border-radius:{{ T.radius }};padding:12px 14px 6px">
-          <sc-if value="{{ T.marks }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:-6px;left:-6px;width:11px;height:11px;pointer-events:none;background:{{ T.markBg }}"></span><span style="position:absolute;top:-6px;right:-6px;width:11px;height:11px;pointer-events:none;background:{{ T.markBg }}"></span><span style="position:absolute;bottom:-6px;left:-6px;width:11px;height:11px;pointer-events:none;background:{{ T.markBg }}"></span><span style="position:absolute;bottom:-6px;right:-6px;width:11px;height:11px;pointer-events:none;background:{{ T.markBg }}"></span></sc-if>
           <div style="font:500 11px/1 'Barlow',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:{{ T.accentInk }};padding-bottom:6px">Shopping list</div>
           <sc-for list="{{ shopping }}" as="g" hint-placeholder-count="3">
             <div style="display:flex;align-items:baseline;gap:10px;padding:11px 0;border-top:1px solid {{ T.rule }}">
@@ -229,7 +227,6 @@ button:disabled{cursor:not-allowed}
 
         <sc-for list="{{ slabs }}" as="s" hint-placeholder-count="2">
           <div style="position:relative;background:{{ T.card }};border:{{ T.cardBd }};border-radius:{{ T.radius }};padding:12px 12px 4px;display:flex;flex-direction:column;gap:10px">
-            <sc-if value="{{ T.marks }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:-6px;left:-6px;width:11px;height:11px;pointer-events:none;background:{{ T.markBg }}"></span><span style="position:absolute;top:-6px;right:-6px;width:11px;height:11px;pointer-events:none;background:{{ T.markBg }}"></span><span style="position:absolute;bottom:-6px;left:-6px;width:11px;height:11px;pointer-events:none;background:{{ T.markBg }}"></span><span style="position:absolute;bottom:-6px;right:-6px;width:11px;height:11px;pointer-events:none;background:{{ T.markBg }}"></span></sc-if>
             <div style="display:flex;align-items:center;gap:10px">
               <span style="flex:none;width:30px;height:30px;border-radius:{{ T.radius }};background:{{ T.badge }};color:#fff;display:flex;align-items:center;justify-content:center;font:600 18px/1 'Barlow Condensed',sans-serif">{{ s.num }}</span>
               <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
@@ -288,7 +285,7 @@ button:disabled{cursor:not-allowed}
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:797},&quot;direction&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;blueprint&quot;,&quot;sunlight&quot;,&quot;plate&quot;],&quot;default&quot;:&quot;blueprint&quot;,&quot;tsType&quot;:&quot;'blueprint'|'sunlight'|'plate'&quot;},&quot;scenario&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;full&quot;,&quot;empty&quot;,&quot;warning&quot;],&quot;default&quot;:&quot;full&quot;,&quot;tsType&quot;:&quot;'full'|'empty'|'warning'&quot;},&quot;screen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;stock&quot;,&quot;plan&quot;],&quot;default&quot;:&quot;stock&quot;,&quot;tsType&quot;:&quot;'stock'|'plan'&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:797},&quot;direction&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;plate&quot;],&quot;default&quot;:&quot;plate&quot;,&quot;tsType&quot;:&quot;'plate'&quot;},&quot;scenario&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;full&quot;,&quot;empty&quot;,&quot;warning&quot;],&quot;default&quot;:&quot;full&quot;,&quot;tsType&quot;:&quot;'full'|'empty'|'warning'&quot;},&quot;screen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;stock&quot;,&quot;plan&quot;],&quot;default&quot;:&quot;stock&quot;,&quot;tsType&quot;:&quot;'stock'|'plan'&quot;}}">
 const PARTS = [
   ['Tischplatte_hinten', 100, 255, 2276, 1],
   ['Tischplatte_vorn', 100, 215, 2232, 1],
@@ -315,39 +312,11 @@ const SCEN = {
   empty: []
 };
 
-const mk = (c, w) => `linear-gradient(${c},${c}) ${(11 - w) / 2}px 0/${w}px 100% no-repeat, linear-gradient(${c},${c}) 0 ${(11 - w) / 2}px/100% ${w}px no-repeat`;
 const hatch = (a, b) => `repeating-linear-gradient(135deg,${a} 0 1px,${b} 1px 6px)`;
 const THEMES = {
-  blueprint: {
-    bg: '#f2f2f3', ink: '#1d1f20', muted: '#5d5d60', faint: '#98989b', rule: 'rgba(29,31,32,.12)',
-    bw: '1px', line: 'rgba(29,31,32,.22)', card: 'transparent', rowBg: '#f2f2f3', radius: '0px', radiusSm: '0px',
-    marks: true, markBg: mk('rgba(29,31,32,.55)', 1),
-    inputBg: '#e9e9ea', inputBd: '1px solid rgba(29,31,32,.22)', focus: '#5980a6', countBd: 'rgba(29,31,32,.22)',
-    accent: '#5980a6', accentInk: '#416180', cta: '#5980a6', ctaInk: '#f2f2f3',
-    add: 'transparent', addInk: '#416180', addBd: '1px solid #5980a6',
-    sumBg: 'transparent', sumBd: '1px solid rgba(29,31,32,.22)', sumInk: '#1d1f20', sumMuted: '#5d5d60', sumNum: '#416180', sumRule: 'rgba(29,31,32,.12)',
-    part: '#d6ebff', partBd: '#416180', partSel: '#5980a6', partDone: '#e7e7ea', hatch: hatch('#b7b7ba', '#f2f2f3'), slabBd: '#416180',
-    tint: '#eef6ff', flash: '#d6ebff', badge: '#416180', checkBd: '1.5px solid #416180', check: '#416180',
-    warn: '#a5432f', warnBd: '1px solid #a5432f', warnBg: 'transparent', warnInk: '#86321f', warnRule: 'rgba(165,67,47,.25)',
-    dock: '#f2f2f3', dockBd: '1px solid rgba(29,31,32,.22)', dims: '23px', tabOn: '#416180'
-  },
-  sunlight: {
-    bg: '#f5f5f8', ink: '#1d1f20', muted: '#424244', faint: '#7a7a7d', rule: '#d4d4d7',
-    bw: '2px', line: '#1d1f20', card: '#ffffff', rowBg: '#ffffff', radius: '0px', radiusSm: '0px',
-    marks: true, markBg: mk('#1d1f20', 2),
-    inputBg: '#ffffff', inputBd: '2px solid #1d1f20', focus: '#416180', countBd: '#1d1f20',
-    accent: '#416180', accentInk: '#2c455d', cta: '#1d2d3d', ctaInk: '#ffffff',
-    add: '#416180', addInk: '#ffffff', addBd: '2px solid #416180',
-    sumBg: '#1d2d3d', sumBd: '2px solid #1d2d3d', sumInk: '#f5f5f8', sumMuted: '#b5d9fd', sumNum: '#ffffff', sumRule: '#416180',
-    part: '#b5d9fd', partBd: '#1d1f20', partSel: '#1d2d3d', partDone: '#d4d4d7', hatch: hatch('#7a7a7d', '#f5f5f8'), slabBd: '#1d1f20',
-    tint: '#d6ebff', flash: '#b5d9fd', badge: '#1d2d3d', checkBd: '2px solid #1d1f20', check: '#1d2d3d',
-    warn: '#8a3424', warnBd: '3px solid #8a3424', warnBg: '#fbeeea', warnInk: '#6e2516', warnRule: '#e9c2b8',
-    dock: '#ffffff', dockBd: '2px solid #1d1f20', dims: '26px', tabOn: '#1d1f20'
-  },
   plate: {
     bg: '#f2f2f3', ink: '#1d1f20', muted: '#5d5d60', faint: '#98989b', rule: '#d6ebff',
     bw: '1px', line: '#b5d9fd', card: '#eef6ff', rowBg: '#eef6ff', radius: '4px', radiusSm: '3px',
-    marks: false, markBg: 'none',
     inputBg: '#ffffff', inputBd: '1px solid #94bce3', focus: '#416180', countBd: '#94bce3',
     accent: '#597ea3', accentInk: '#2c455d', cta: '#2c455d', ctaInk: '#ffffff',
     add: '#d6ebff', addInk: '#1d2d3d', addBd: '1px solid #94bce3',
